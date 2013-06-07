@@ -44,7 +44,7 @@
   window.init = function() {
     var mime;
 
-    mime = "text/hql";
+    mime = "hql";
     return window.editor = CodeMirror.fromTextArea(document.getElementById("code"), {
       mode: mime,
       indentWithTabs: true,

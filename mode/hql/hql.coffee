@@ -281,7 +281,7 @@ do ->
 
 
 
-  CodeMirror.defineMIME "text/hql",
+  CodeMirror.defineMIME "hql",
     name: "hql"
     keywords: set(sqlKeywords)
     builtin: set(builtinWords)
@@ -289,3 +289,5 @@ do ->
     operatorChars: /^[*+\-%<>!=]/
     dateSQL: set(dateSQLWords)
     support: set("ODBCdotTable")
+
+  CodeMirror.defineMIME "text/hql", "hql"

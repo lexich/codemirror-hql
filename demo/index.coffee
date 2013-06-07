@@ -22,7 +22,7 @@ autocomplete = (ch) ->
     CodeMirror.showHint cm, CodeMirror.hqlHint, {ch, completeSingle: false, schemaInfo}
 
 window.init = ->
-  mime = "text/hql"
+  mime = "hql"
   window.editor = CodeMirror.fromTextArea(document.getElementById("code"),
     mode: mime
     indentWithTabs: true

@@ -249,7 +249,7 @@
       }
       return obj;
     };
-    return CodeMirror.defineMIME("text/hql", {
+    CodeMirror.defineMIME("hql", {
       name: "hql",
       keywords: set(sqlKeywords),
       builtin: set(builtinWords),
@@ -258,6 +258,7 @@
       dateSQL: set(dateSQLWords),
       support: set("ODBCdotTable")
     });
+    return CodeMirror.defineMIME("text/hql", "hql");
   })();
 
 }).call(this);
