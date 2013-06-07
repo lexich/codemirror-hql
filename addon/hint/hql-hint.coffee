@@ -365,27 +365,13 @@ Generator = do->
 CodeMirror.hqlHint = []
 window.gen = new Generator()
 
-schema =
-  Cat:
-    vars:
-      dog:"Dog"
-      fish:"Fish"
-  Dog:
-    vars:
-      dog:"Dog"
-      fish:"Fish"
-  Fish:
-    vars:
-      dog:"Dog"
-      fish:"Fish"
-
-CodeMirror.hqlHint = (cm, options)->
+CodeMirror.hqlHint = (cm, opt)->
   cur = cm.getCursor()
 
   text = Service.getCodeAfterToken cm, cur, ";"
 
   options = gen.parse text
-  hints = gen.getHints text, options, schema
+  hints = gen.getHints text, options, opt.schemaInfo
   {
     list: hints
     from: cur
