@@ -34,10 +34,6 @@
     return gen.getHints(str, opt, schema);
   };
 
-  test("Fail", function() {
-    return equal(1, 1);
-  });
-
   test("Check select and from", function() {
     var hints, str;
 
@@ -237,7 +233,10 @@
     deepEqual(hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group"].sort());
     str = "from Cat c left join fetch c.dog ";
     hints = _getHints(str);
-    return deepEqual(hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group"].sort());
+    deepEqual(hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group"].sort());
+    str = "from Cat c where c.dog=c.cat and c.dog=c.";
+    hints = _getHints(str);
+    return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
   });
 
   test("additional valiable", function() {
@@ -252,6 +251,10 @@
     str = "from Cat where Cat.";
     hints = _getHints(str);
     return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+  });
+
+  test("Fail", function() {
+    return equal(1, 1);
   });
 
   (function() {

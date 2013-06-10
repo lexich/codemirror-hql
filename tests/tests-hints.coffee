@@ -20,10 +20,6 @@ _getHints = (str)->
   gen.getHints str, opt, schema
 
 
-test "Fail", ->
-  equal(1,1)
-
-
 test "Check select and from", ->
   str = ""
   hints = _getHints str
@@ -273,6 +269,10 @@ test "Check join", ->
   hints = _getHints str
   deepEqual hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group" ].sort()
 
+  str = "from Cat c where c.dog=c.cat and c.dog=c."
+  hints = _getHints str
+  deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
+
 
 
 test "additional valiable", ->
@@ -287,6 +287,10 @@ test "additional valiable", ->
   str = "from Cat where Cat."
   hints = _getHints str
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
+
+test "Fail", ->
+  equal(1,1)
+
 
 ->
   test "check group by", ->

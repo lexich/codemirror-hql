@@ -280,7 +280,7 @@
         lastIndex = str.length - 1;
         if (str.trim().length > 0) {
           if (str[lastIndex] === ".") {
-            res = str.replace(/[ ]+/g, " ").split(" ");
+            res = str.replace(/[ ]+/g, " ").split(/([ ]+|>=|<=|!=|>|<|=)/);
             variablesString = res[res.length - 1];
             variables = variablesString.split(".");
             variables = variables.slice(0, variables.length - 1);
