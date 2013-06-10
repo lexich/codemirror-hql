@@ -91,9 +91,6 @@ Generator = do->
       if rFrom
         tokens.from = true
         str = rFrom[1]
-        #postFrom = @createAfrerFrom().join("|")
-        #rxA = new RegExp "(.+)(#{postFrom})(.*)"
-        #rAfter = rxA.exec str
         res = str.replace(/[ ]+/," ").split(" ")
         postFromBuildin = ["inner","fetch","left","right","join","where","order"]
         fromParams = ""
@@ -105,12 +102,6 @@ Generator = do->
             fromParams += "#{item} "
           else break
         str = res.splice(i,res.length).join(" ")
-
-        #if rAfter
-        #  fromParams = rAfter[1]
-        #  str = "#{rAfter[2]}#{rAfter[3]}"
-        #else
-        #  fromParams = str
 
         pairParams = fromParams.trim().split(",")
         mapping = options.mapping
@@ -331,7 +322,7 @@ Generator = do->
       return false unless token is "where"
       tks = s.replace(/(>=|<=|!=|=|<|>)/g," $1 ").replace(/[ ]+/g," ").split(" ")
       lastTks = tks[tks.length-1]
-      if ["","and","or","like", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
+      if ["","and","or","like", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
         @pushLocalVars hints, options
       else if tks[tks.length-2] is "="
         hints.push "and"
@@ -339,6 +330,7 @@ Generator = do->
         hints.push "order"
       else if ["","and","or"].indexOf(tks[tks.length-2])
         hints.push "like"
+        hints.push "exist"
 
       true
 

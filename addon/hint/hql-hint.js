@@ -418,7 +418,7 @@
         }
         tks = s.replace(/(>=|<=|!=|=|<|>)/g, " $1 ").replace(/[ ]+/g, " ").split(" ");
         lastTks = tks[tks.length - 1];
-        if (["", "and", "or", "like", "=", ">=", "<=", "!=", "=", "<", ">"].indexOf(lastTks) >= 0) {
+        if (["", "and", "or", "like", "exist", "=", ">=", "<=", "!=", "=", "<", ">"].indexOf(lastTks) >= 0) {
           this.pushLocalVars(hints, options);
         } else if (tks[tks.length - 2] === "=") {
           hints.push("and");
@@ -426,6 +426,7 @@
           hints.push("order");
         } else if (["", "and", "or"].indexOf(tks[tks.length - 2])) {
           hints.push("like");
+          hints.push("exist");
         }
         return true;
       },

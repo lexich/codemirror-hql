@@ -13,7 +13,13 @@ window.schema =
       dog:"Dog"
       fish:"Fish"
 
-window.schemaArr = ["Cat","Dog","Fish"].sort()
+  "org.java.Test":
+    vars:
+      cat:"Cat"
+      dog:"Dog"
+      fish:"Fish"
+
+window.schemaArr = ["Cat","Dog","Fish","org.java.Test"].sort()
 
 _getHints = (str)->
   opt = gen.parse(str)
@@ -104,7 +110,7 @@ test "Check where", ->
 
   str = "from Cat c where c "
   hints = _getHints str
-  deepEqual hints, ["like"], "HQL: `#{str}`"
+  deepEqual hints, ["like", "exist"], "HQL: `#{str}`"
 
   str = "from Cat c where c = "
   hints = _getHints str
@@ -132,7 +138,7 @@ test "Check where", ->
 
   str = "from Cat a where a = 1 and a "
   hints = _getHints str
-  deepEqual hints, ["like"], "HQL: `#{str}`"
+  deepEqual hints, ["like", "exist"], "HQL: `#{str}`"
 
   str = "from Cat c where c = 1 "
   hints = _getHints str
@@ -273,6 +279,10 @@ test "Check join", ->
   hints = _getHints str
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
 
+  str = "from Cat c where c.dog=c.cat and c.dog=c."
+  hints = _getHints str
+  deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
+
 
 
 test "additional valiable", ->
@@ -288,8 +298,18 @@ test "additional valiable", ->
   hints = _getHints str
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
 
+
+->
+  test "multiple class",->
+    str = "from org."
+    hints = _getHints str
+    deepEqual hints, ["test"], "HQL: `#{str}`"
+
+
+
 test "Fail", ->
   equal(1,1)
+  str = "from Cat where dog in elements(cats)"
 
 
 ->

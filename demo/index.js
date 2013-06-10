@@ -9,6 +9,12 @@
         fish: "Fish"
       }
     },
+    Cat2: {
+      vars: {
+        dog: "Dog",
+        fish: "Fish"
+      }
+    },
     Dog: {
       vars: {
         dog: "Dog",
@@ -25,19 +31,23 @@
 
   autocomplete = function(ch) {
     return function(cm) {
-      var cur, line;
+      var cur, doc, line;
 
       cur = cm.getCursor();
-      line = cm.getDoc().getLine(cur.line);
+      doc = cm.getDoc();
+      line = doc.getLine(cur.line);
       if (ch !== "CS") {
-        line += ch;
-        cm.getDoc().setLine(cur.line, line);
+        line = line.slice(0, cur.ch) + ch + line.slice(cur.ch, line.length);
+        doc.setLine(cur.line, line);
+        doc.setCursor(CodeMirror.Pos(cur.line, cur.ch + 1));
       }
-      return CodeMirror.showHint(cm, CodeMirror.hqlHint, {
-        ch: ch,
-        completeSingle: false,
-        schemaInfo: schemaInfo
-      });
+      return setTimeout((function() {
+        return CodeMirror.showHint(cm, CodeMirror.hqlHint, {
+          ch: ch,
+          completeSingle: false,
+          schemaInfo: schemaInfo
+        });
+      }), 100);
     };
   };
 
@@ -52,6 +62,8 @@
       lineNumbers: true,
       matchBrackets: true,
       autofocus: true,
+      enterMode: "keep",
+      tabMode: "shift",
       extraKeys: {
         "Ctrl-Space": autocomplete("CS"),
         "'.'": autocomplete("."),

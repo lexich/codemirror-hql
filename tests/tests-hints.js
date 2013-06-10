@@ -22,10 +22,17 @@
         dog: "Dog",
         fish: "Fish"
       }
+    },
+    "org.java.Test": {
+      vars: {
+        cat: "Cat",
+        dog: "Dog",
+        fish: "Fish"
+      }
     }
   };
 
-  window.schemaArr = ["Cat", "Dog", "Fish"].sort();
+  window.schemaArr = ["Cat", "Dog", "Fish", "org.java.Test"].sort();
 
   _getHints = function(str) {
     var opt;
@@ -101,7 +108,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat c where c ";
     hints = _getHints(str);
-    deepEqual(hints, ["like"], "HQL: `" + str + "`");
+    deepEqual(hints, ["like", "exist"], "HQL: `" + str + "`");
     str = "from Cat c where c = ";
     hints = _getHints(str);
     deepEqual(hints, ["c"], "HQL: `" + str + "`");
@@ -122,7 +129,7 @@
     deepEqual(hints, ["c"], "HQL: `" + str + "`");
     str = "from Cat a where a = 1 and a ";
     hints = _getHints(str);
-    deepEqual(hints, ["like"], "HQL: `" + str + "`");
+    deepEqual(hints, ["like", "exist"], "HQL: `" + str + "`");
     str = "from Cat c where c = 1 ";
     hints = _getHints(str);
     deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
@@ -236,6 +243,9 @@
     deepEqual(hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group"].sort());
     str = "from Cat c where c.dog=c.cat and c.dog=c.";
     hints = _getHints(str);
+    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    str = "from Cat c where c.dog=c.cat and c.dog=c.";
+    hints = _getHints(str);
     return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
   });
 
@@ -253,8 +263,21 @@
     return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
   });
 
+  (function() {
+    return test("multiple class", function() {
+      var hints, str;
+
+      str = "from org.";
+      hints = _getHints(str);
+      return deepEqual(hints, ["test"], "HQL: `" + str + "`");
+    });
+  });
+
   test("Fail", function() {
-    return equal(1, 1);
+    var str;
+
+    equal(1, 1);
+    return str = "from Cat where dog in elements(cats)";
   });
 
   (function() {
