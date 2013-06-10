@@ -108,7 +108,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat c where c ";
     hints = _getHints(str);
-    deepEqual(hints, ["like", "exist"], "HQL: `" + str + "`");
+    deepEqual(hints, ["like", "exist", "in"], "HQL: `" + str + "`");
     str = "from Cat c where c = ";
     hints = _getHints(str);
     deepEqual(hints, ["c"], "HQL: `" + str + "`");
@@ -129,7 +129,7 @@
     deepEqual(hints, ["c"], "HQL: `" + str + "`");
     str = "from Cat a where a = 1 and a ";
     hints = _getHints(str);
-    deepEqual(hints, ["like", "exist"], "HQL: `" + str + "`");
+    deepEqual(hints, ["like", "exist", "in"], "HQL: `" + str + "`");
     str = "from Cat c where c = 1 ";
     hints = _getHints(str);
     deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");

@@ -322,7 +322,7 @@ Generator = do->
       return false unless token is "where"
       tks = s.replace(/(>=|<=|!=|=|<|>)/g," $1 ").replace(/[ ]+/g," ").split(" ")
       lastTks = tks[tks.length-1]
-      if ["","and","or","like", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
+      if ["","and","or","like", "in", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
         @pushLocalVars hints, options
       else if tks[tks.length-2] is "="
         hints.push "and"
@@ -331,7 +331,7 @@ Generator = do->
       else if ["","and","or"].indexOf(tks[tks.length-2])
         hints.push "like"
         hints.push "exist"
-
+        hints.push "in"
       true
 
     checkOrder:(hints, token, statement, s, options)->
