@@ -208,7 +208,7 @@ test "Check order", ->
 
   str = "from Cat c order by c "
   hints = _getHints str
-  deepEqual hints, [], "HQL: `#{str}`"
+  deepEqual hints, [","], "HQL: `#{str}`"
 
   str = "from Cat c order by c,"
   hints = _getHints str
