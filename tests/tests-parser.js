@@ -165,6 +165,17 @@
     return equal(opt.tokens.postFrom, true);
   });
 
+  test("select distinct c from Cat c left join c.dog d with d.cat = c", function() {
+    var opt;
+
+    opt = gen.parse("select distinct c from Cat c left join c.dog d with d.cat = c");
+    equal(opt.tokens.select, true);
+    equal(opt.tokens.from, true);
+    equal(opt.tokens.postFrom, true);
+    equal(opt.tokens.joinFetch, true);
+    return deepEqual(opt.vars, ["c", "d"]);
+  });
+
   test("check post from arguments", function() {
     var a, base;
 

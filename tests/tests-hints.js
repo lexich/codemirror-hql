@@ -252,8 +252,20 @@
     deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
     str = "from Cat c where c.dog=c.cat and c.dog=c.";
     hints = _getHints(str);
-    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
-    return str = "select distinct c from Cat c left join c.dog d with d.value > 5000.00";
+    return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+  });
+
+  (function() {
+    return test("Fail", function() {
+      var hints, str;
+
+      str = "select distinct c from Cat c left join c.dog d ";
+      hints = _getHints(str);
+      deepEqual(hints, ["with", "fetch", "inner", "left", "right", "join", "where", "order"].sort(), "HQL: `" + str + "`");
+      str = "select distinct c from Cat c left join c.dog d with ";
+      hints = _getHints(str);
+      return deepEqual(hints, ["d", "c"], "HQL: `" + str + "`");
+    });
   });
 
   test("additional valiable", function() {

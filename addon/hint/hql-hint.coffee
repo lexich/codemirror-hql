@@ -39,18 +39,21 @@ Schema = do ->
           results.push v
       results
 
-    getVariables:(_type, variables)->
+    getType:(_baseType, variables)->
       vars = {}
       for i in [0..variables.length-1]
         v = variables[i]
         if i is 0
-          vars = @schema.types[_type]?.vars
+          vars = @schema.types[_baseType]?.vars
         else
           type = vars[v]
           vars = @schema.types[type]?.vars
         return [] unless vars?
+      vars
+
+    getVariables:(_baseType, variables)->
       result = []
-      for v, type of vars
+      for v, type of @getType(_baseType, variables)
         result.push v
       result
 
@@ -79,6 +82,73 @@ Generator = do->
       @afterFromAutoComplete = str.split("|")
       @splitterAfterFrom = @createAfrerFrom().join("|")
       this
+
+    parse:(text)->
+      options =
+        types:[]
+        vars:[]
+        mapping:{}
+        mappingVar:{}
+        dataPostFrom:[]
+        original: text
+        tokens:
+          select:false
+          from:false
+          postFrom:false
+          joinFetch:false
+
+      str = text.replace /\n/, ""
+
+      str = @parseSelect str, options
+      str = @parseFrom str, options
+      unless options.tokens.from or options.tokens.select
+        return options
+
+      #where
+      strRx = "(#{@splitterAfterFrom})"
+      rx =  new RegExp strRx
+      rAfter = str.split rx
+      if rAfter.length > 1
+        i = 1
+        while i < rAfter.length
+          token = rAfter[i].trim()
+          statement = rAfter[i+1].trim()
+          @parsePostFrom token, statement, options
+          i+=2
+      options
+
+    getHints:(str, options, _schema)->
+      schema = new Schema _schema
+      tokens = options.tokens
+      hints = []
+      lastIndex = str.length-1
+      if str.trim().length > 0
+        if str[lastIndex] is "."
+          res = str.replace(/[ ]+/g," ").split(/([ ]+|>=|<=|!=|>|<|=)/)
+          variablesString = res[res.length-1]
+          variables = variablesString.split(".")
+          variables = variables.slice(0, variables.length-1)
+          @fillVariablesAutocomplete hints, variables, schema, options
+          return hints
+
+        else if [" ",",","=",">","<"].indexOf(str[lastIndex]) < 0
+          return hints
+
+
+      if !tokens.select and !tokens.from
+        hints = ["select", "from"]
+      else if tokens.select and !tokens.from
+        if /select[ ]+(.+)(from|)/.test str.trim()
+          hints = ["from"]
+      else if tokens.from and !tokens.postFrom
+        s = str.trim()
+        if (options.types.length > 0 and \
+          (s[s.length-1]!="," and s.slice(s.length-2, s.length) != "as") and \
+          s.indexOf("from") < s.length - 4
+        )
+          for item in ["fetch","inner","left","right", "join", "where", "order"].sort()
+            hints.push item
+      @fillHints str, options, schema, hints
 
     parseSelect:(str,options)->
       tokens = options.tokens
@@ -118,73 +188,44 @@ Generator = do->
         str = res.splice(i,res.length).join(" ")
 
         pairParams = fromParams.trim().split(",")
-        mapping = options.mapping
         for pairParam in pairParams
-          res = pairParam.trim().split(/[ ]+|[ ]+as[ ]+/)
-
-          if res.length is 1
-            sType = res[0].trim()
-            sVar = null
-
-          else if res.length is 2
-            sType = res[0]
-            sVar = res[1]
-
-          else if res.length is 3
-            sType = res[0]
-            sVar = res[2]
-
-          else
-            continue
-
-          unless sType is "" and sVar is ""
-            @uniquePush options.types, sType
-            @uniquePush options.vars, sVar if sVar
-            mapping[sType] = [] unless mapping[sType]?
-            @uniquePush mapping[sType], sVar if sVar
-            options.mappingVar[sVar] = sType
-
+          @parseParams pairParam, options
       str
+
+    parseParams:(strParam, options)->
+      res = strParam.trim().split(/[ ]+|[ ]+as[ ]+/)
+      mapping = options.mapping
+      if res.length is 1
+        sType = res[0].trim()
+        sVar = null
+
+      else if res.length is 2
+        sType = res[0]
+        sVar = res[1]
+
+      else if res.length is 3
+        sType = res[0]
+        sVar = res[2]
+
+      else return
+
+      unless sType is "" or sVar is ""
+        @uniquePush options.types, sType
+        @uniquePush options.vars, sVar if sVar
+        mapping[sType] = [] unless mapping[sType]?
+        @uniquePush mapping[sType], sVar if sVar
+        options.mappingVar[sVar] = sType
+      null
 
     parsePostFrom:(token, statement, options)->
       if token != ""
         options.tokens.postFrom = true
         options.dataPostFrom.push {token,statement}
+        if token.indexOf("join") >=0 or token.indexOf("fetch") >= 0
+          options.tokens.joinFetch = true
+          @parseParams statement, options
 
 
-    parse:(text)->
-      options =
-        types:[]
-        vars:[]
-        mapping:{}
-        mappingVar:{}
-        dataPostFrom:[]
-        original: text
-        tokens:
-          select:false
-          from:false
-          postFrom:false
-
-      str = text.replace /\n/, ""
-
-      str = @parseSelect str, options
-      str = @parseFrom str, options
-      unless options.tokens.from or options.tokens.select
-        return options
-
-      #where
-      strRx = "(#{@splitterAfterFrom})"
-      rx =  new RegExp strRx
-      rAfter = str.split rx
-      if rAfter.length > 1
-        i = 1
-        while i < rAfter.length
-          token = rAfter[i].trim()
-          statement = rAfter[i+1].trim()
-          @parsePostFrom token, statement, options
-          i+=2
-
-      options
 
     createAfrerFrom:->
       res = []
@@ -204,7 +245,7 @@ Generator = do->
       for tuple in [typejoin, outer, fetch, join]
         for item in tuple
           _add item
-
+      res.push "with"
       res.push "where"
       res.push "order"
       res.push "order[ ]+by"
@@ -214,39 +255,6 @@ Generator = do->
     uniquePush:(arr,val)->
       unless val in arr
         arr.push val.trim()
-
-    getHints:(str, options, _schema)->
-      schema = new Schema _schema
-      tokens = options.tokens
-      hints = []
-      lastIndex = str.length-1
-      if str.trim().length > 0
-        if str[lastIndex] is "."
-          res = str.replace(/[ ]+/g," ").split(/([ ]+|>=|<=|!=|>|<|=)/)
-          variablesString = res[res.length-1]
-          variables = variablesString.split(".")
-          variables = variables.slice(0, variables.length-1)
-          @fillVariablesAutocomplete hints, variables, schema, options
-          return hints
-
-        else if [" ",",","=",">","<"].indexOf(str[lastIndex]) < 0
-          return hints
-
-
-      if !tokens.select and !tokens.from
-        hints = ["select", "from"]
-      else if tokens.select and !tokens.from
-        if /select[ ]+(.+)(from|)/.test str.trim()
-          hints = ["from"]
-      else if tokens.from and !tokens.postFrom
-        s = str.trim()
-        if (options.types.length > 0 and \
-          (s[s.length-1]!="," and s.slice(s.length-2, s.length) != "as") and \
-          s.indexOf("from") < s.length - 4
-        )
-          for item in ["fetch","inner","left","right", "join", "where", "order"].sort()
-            hints.push item
-      @fillHints str, options, schema, hints
 
     fillVariablesAutocomplete:(hints, variables, schema, options)->
       firstVar = variables[0]

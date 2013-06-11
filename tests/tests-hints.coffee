@@ -290,7 +290,15 @@ test "Check join", ->
   hints = _getHints str
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
 
-  str = "select distinct c from Cat c left join c.dog d with d.value > 5000.00"
+->
+  test "Fail", ->
+    str = "select distinct c from Cat c left join c.dog d "
+    hints = _getHints str
+    deepEqual hints, ["with", "fetch","inner","left","right", "join", "where", "order"].sort(), "HQL: `#{str}`"
+
+    str = "select distinct c from Cat c left join c.dog d with "
+    hints = _getHints str
+    deepEqual hints, ["d","c"], "HQL: `#{str}`"
 
 
 

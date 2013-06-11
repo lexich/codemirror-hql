@@ -64,14 +64,14 @@
         }
         return results;
       },
-      getVariables: function(_type, variables) {
-        var i, result, type, v, vars, _i, _ref, _ref1, _ref2;
+      getType: function(_baseType, variables) {
+        var i, type, v, vars, _i, _ref, _ref1, _ref2;
 
         vars = {};
         for (i = _i = 0, _ref = variables.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
           v = variables[i];
           if (i === 0) {
-            vars = (_ref1 = this.schema.types[_type]) != null ? _ref1.vars : void 0;
+            vars = (_ref1 = this.schema.types[_baseType]) != null ? _ref1.vars : void 0;
           } else {
             type = vars[v];
             vars = (_ref2 = this.schema.types[type]) != null ? _ref2.vars : void 0;
@@ -80,9 +80,15 @@
             return [];
           }
         }
+        return vars;
+      },
+      getVariables: function(_baseType, variables) {
+        var result, type, v, _ref;
+
         result = [];
-        for (v in vars) {
-          type = vars[v];
+        _ref = this.getType(_baseType, variables);
+        for (v in _ref) {
+          type = _ref[v];
           result.push(v);
         }
         return result;
@@ -123,97 +129,6 @@
         this.splitterAfterFrom = this.createAfrerFrom().join("|");
         return this;
       },
-      parseSelect: function(str, options) {
-        var item, rFrom, rSelect, tokens, vars, _i, _len;
-
-        tokens = options.tokens;
-        rSelect = /select[ ]+(.*)/.exec(str);
-        if (rSelect) {
-          tokens.select = true;
-          str = rSelect[1];
-          rFrom = /(.+)from(.*)/.exec(str);
-          if (rFrom) {
-            tokens.from = true;
-            vars = rFrom[1].split(",");
-            str = "from " + rFrom[2];
-          } else {
-            vars = str.split(",");
-          }
-          for (_i = 0, _len = vars.length; _i < _len; _i++) {
-            item = vars[_i];
-            item = item.trim();
-            if (item === "") {
-              continue;
-            }
-          }
-        }
-        return str;
-      },
-      parseFrom: function(str, options) {
-        var fromParams, i, item, mapping, pairParam, pairParams, postFromBuildin, rFrom, res, sType, sVar, tokens, _i, _j, _len, _ref;
-
-        tokens = options.tokens;
-        rFrom = /from(.*)/.exec(str);
-        if (rFrom) {
-          tokens.from = true;
-          str = rFrom[1];
-          res = str.replace(/[ ]+/, " ").split(" ");
-          postFromBuildin = ["inner", "fetch", "left", "right", "join", "where", "order"];
-          fromParams = "";
-          str = "";
-          i = 0;
-          for (i = _i = 0, _ref = res.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-            item = res[i];
-            if (postFromBuildin.indexOf(item) < 0) {
-              fromParams += "" + item + " ";
-            } else {
-              break;
-            }
-          }
-          str = res.splice(i, res.length).join(" ");
-          pairParams = fromParams.trim().split(",");
-          mapping = options.mapping;
-          for (_j = 0, _len = pairParams.length; _j < _len; _j++) {
-            pairParam = pairParams[_j];
-            res = pairParam.trim().split(/[ ]+|[ ]+as[ ]+/);
-            if (res.length === 1) {
-              sType = res[0].trim();
-              sVar = null;
-            } else if (res.length === 2) {
-              sType = res[0];
-              sVar = res[1];
-            } else if (res.length === 3) {
-              sType = res[0];
-              sVar = res[2];
-            } else {
-              continue;
-            }
-            if (!(sType === "" && sVar === "")) {
-              this.uniquePush(options.types, sType);
-              if (sVar) {
-                this.uniquePush(options.vars, sVar);
-              }
-              if (mapping[sType] == null) {
-                mapping[sType] = [];
-              }
-              if (sVar) {
-                this.uniquePush(mapping[sType], sVar);
-              }
-              options.mappingVar[sVar] = sType;
-            }
-          }
-        }
-        return str;
-      },
-      parsePostFrom: function(token, statement, options) {
-        if (token !== "") {
-          options.tokens.postFrom = true;
-          return options.dataPostFrom.push({
-            token: token,
-            statement: statement
-          });
-        }
-      },
       parse: function(text) {
         var i, options, rAfter, rx, statement, str, strRx, token;
 
@@ -227,7 +142,8 @@
           tokens: {
             select: false,
             from: false,
-            postFrom: false
+            postFrom: false,
+            joinFetch: false
           }
         };
         str = text.replace(/\n/, "");
@@ -249,51 +165,6 @@
           }
         }
         return options;
-      },
-      createAfrerFrom: function() {
-        var fetch, i1, i2, i3, i4, item, join, outer, res, tuple, typejoin, _add, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _ref;
-
-        res = [];
-        typejoin = ["inner[ ]+", "left[ ]+", "right[ ]+"];
-        outer = ["outer[ ]+", ""];
-        fetch = ["fetch", "fetch[ ]+all", ""];
-        join = ["join[ ]*"];
-        _add = function(item) {
-          if (item !== "" && res.indexOf(item) < 0) {
-            return res.push(item);
-          }
-        };
-        for (_i = 0, _len = typejoin.length; _i < _len; _i++) {
-          i1 = typejoin[_i];
-          for (_j = 0, _len1 = outer.length; _j < _len1; _j++) {
-            i2 = outer[_j];
-            for (_k = 0, _len2 = join.length; _k < _len2; _k++) {
-              i3 = join[_k];
-              for (_l = 0, _len3 = fetch.length; _l < _len3; _l++) {
-                i4 = fetch[_l];
-                _add("" + i1 + i2 + i3 + i4);
-              }
-            }
-          }
-        }
-        _ref = [typejoin, outer, fetch, join];
-        for (_m = 0, _len4 = _ref.length; _m < _len4; _m++) {
-          tuple = _ref[_m];
-          for (_n = 0, _len5 = tuple.length; _n < _len5; _n++) {
-            item = tuple[_n];
-            _add(item);
-          }
-        }
-        res.push("where");
-        res.push("order");
-        res.push("order[ ]+by");
-        res.push("group");
-        return res;
-      },
-      uniquePush: function(arr, val) {
-        if (__indexOf.call(arr, val) < 0) {
-          return arr.push(val.trim());
-        }
       },
       getHints: function(str, options, _schema) {
         var hints, item, lastIndex, res, s, schema, tokens, variables, variablesString, _i, _len, _ref;
@@ -331,6 +202,153 @@
           }
         }
         return this.fillHints(str, options, schema, hints);
+      },
+      parseSelect: function(str, options) {
+        var item, rFrom, rSelect, tokens, vars, _i, _len;
+
+        tokens = options.tokens;
+        rSelect = /select[ ]+(.*)/.exec(str);
+        if (rSelect) {
+          tokens.select = true;
+          str = rSelect[1];
+          rFrom = /(.+)from(.*)/.exec(str);
+          if (rFrom) {
+            tokens.from = true;
+            vars = rFrom[1].split(",");
+            str = "from " + rFrom[2];
+          } else {
+            vars = str.split(",");
+          }
+          for (_i = 0, _len = vars.length; _i < _len; _i++) {
+            item = vars[_i];
+            item = item.trim();
+            if (item === "") {
+              continue;
+            }
+          }
+        }
+        return str;
+      },
+      parseFrom: function(str, options) {
+        var fromParams, i, item, pairParam, pairParams, postFromBuildin, rFrom, res, tokens, _i, _j, _len, _ref;
+
+        tokens = options.tokens;
+        rFrom = /from(.*)/.exec(str);
+        if (rFrom) {
+          tokens.from = true;
+          str = rFrom[1];
+          res = str.replace(/[ ]+/, " ").split(" ");
+          postFromBuildin = ["inner", "fetch", "left", "right", "join", "where", "order"];
+          fromParams = "";
+          str = "";
+          i = 0;
+          for (i = _i = 0, _ref = res.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+            item = res[i];
+            if (postFromBuildin.indexOf(item) < 0) {
+              fromParams += "" + item + " ";
+            } else {
+              break;
+            }
+          }
+          str = res.splice(i, res.length).join(" ");
+          pairParams = fromParams.trim().split(",");
+          for (_j = 0, _len = pairParams.length; _j < _len; _j++) {
+            pairParam = pairParams[_j];
+            this.parseParams(pairParam, options);
+          }
+        }
+        return str;
+      },
+      parseParams: function(strParam, options) {
+        var mapping, res, sType, sVar;
+
+        res = strParam.trim().split(/[ ]+|[ ]+as[ ]+/);
+        mapping = options.mapping;
+        if (res.length === 1) {
+          sType = res[0].trim();
+          sVar = null;
+        } else if (res.length === 2) {
+          sType = res[0];
+          sVar = res[1];
+        } else if (res.length === 3) {
+          sType = res[0];
+          sVar = res[2];
+        } else {
+          return;
+        }
+        if (!(sType === "" || sVar === "")) {
+          this.uniquePush(options.types, sType);
+          if (sVar) {
+            this.uniquePush(options.vars, sVar);
+          }
+          if (mapping[sType] == null) {
+            mapping[sType] = [];
+          }
+          if (sVar) {
+            this.uniquePush(mapping[sType], sVar);
+          }
+          options.mappingVar[sVar] = sType;
+        }
+        return null;
+      },
+      parsePostFrom: function(token, statement, options) {
+        if (token !== "") {
+          options.tokens.postFrom = true;
+          options.dataPostFrom.push({
+            token: token,
+            statement: statement
+          });
+          if (token.indexOf("join") >= 0 || token.indexOf("fetch") >= 0) {
+            options.tokens.joinFetch = true;
+            return this.parseParams(statement, options);
+          }
+        }
+      },
+      createAfrerFrom: function() {
+        var fetch, i1, i2, i3, i4, item, join, outer, res, tuple, typejoin, _add, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _ref;
+
+        res = [];
+        typejoin = ["inner[ ]+", "left[ ]+", "right[ ]+"];
+        outer = ["outer[ ]+", ""];
+        fetch = ["fetch", "fetch[ ]+all", ""];
+        join = ["join[ ]*"];
+        _add = function(item) {
+          if (item !== "" && res.indexOf(item) < 0) {
+            return res.push(item);
+          }
+        };
+        for (_i = 0, _len = typejoin.length; _i < _len; _i++) {
+          i1 = typejoin[_i];
+          for (_j = 0, _len1 = outer.length; _j < _len1; _j++) {
+            i2 = outer[_j];
+            for (_k = 0, _len2 = join.length; _k < _len2; _k++) {
+              i3 = join[_k];
+              for (_l = 0, _len3 = fetch.length; _l < _len3; _l++) {
+                i4 = fetch[_l];
+                _add("" + i1 + i2 + i3 + i4);
+              }
+            }
+          }
+        }
+        _ref = [typejoin, outer, fetch, join];
+        for (_m = 0, _len4 = _ref.length; _m < _len4; _m++) {
+          tuple = _ref[_m];
+          for (_n = 0, _len5 = tuple.length; _n < _len5; _n++) {
+            item = tuple[_n];
+            _add(item);
+          }
+        }
+        res.push("with");
+        res.push("where");
+        res.push("order");
+        res.push("order[ ]+by");
+        res.push("group");
+        return res;
+      },
+      uniquePush: function(arr, val) {
+        if (__indexOf.call(arr, val) < 0) {
+          return arr.push(val.trim());
+        }
       },
       fillVariablesAutocomplete: function(hints, variables, schema, options) {
         var data, firstVar, item, type, _i, _len;
