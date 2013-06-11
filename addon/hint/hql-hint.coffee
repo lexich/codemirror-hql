@@ -65,6 +65,7 @@ Schema = do ->
 Generator = do->
   __super__=->
     this.initialize()
+    this
 
   __super__:: =
     joinRegExp:null
@@ -183,7 +184,6 @@ Generator = do->
           @parsePostFrom token, statement, options
           i+=2
 
-      #@analyseFrom(text, options)
       options
 
     createAfrerFrom:->
@@ -259,7 +259,13 @@ Generator = do->
 
     fillHints:(str, options, schema, hints)->
       tokens = options.tokens
-      if tokens.from and !tokens.postFrom
+      if tokens.select and !tokens.from
+        if statements = /select (.*)/.exec str
+          s = statements[1].trim()
+          if s is ""
+            hints.push "distinct"
+
+      else if tokens.from and !tokens.postFrom
         bFill = false
         statements = /from (.*)/.exec str
         if statements?

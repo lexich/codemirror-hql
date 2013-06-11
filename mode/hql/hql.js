@@ -2,7 +2,7 @@
 (function() {
   var atomsWords, builtinWords, dateSQLWords, sqlKeywords;
 
-  sqlKeywords = ['and', 'as', 'by', 'delete', 'distinct', 'entry', 'fetch', 'from', 'group', 'in', 'index', 'is', 'join', 'key', 'left', 'like', 'not', 'or', 'or', 'order', 'select', 'set', 'update', 'value', 'where', 'with', "inner", "outer", "left", "rigth", "join", "fetch", "all"].join(" ");
+  sqlKeywords = ['and', 'as', 'by', 'delete', 'distinct', 'entry', 'fetch', 'from', 'group', 'in', 'index', 'is', 'join', 'key', 'left', 'like', 'not', 'or', 'or', 'order', 'select', 'set', 'update', 'value', 'where', 'when', 'with', "inner", "outer", "left", "rigth", "join", "fetch", "all"].join(" ");
 
   builtinWords = [].join(" ");
 

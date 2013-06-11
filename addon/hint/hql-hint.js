@@ -106,7 +106,8 @@
     var __super__;
 
     __super__ = function() {
-      return this.initialize();
+      this.initialize();
+      return this;
     };
     __super__.prototype = {
       joinRegExp: null,
@@ -347,7 +348,14 @@
         var bFill, dataPF, lastData, s, statement, statements, token, tokens, type, _i, _len, _ref;
 
         tokens = options.tokens;
-        if (tokens.from && !tokens.postFrom) {
+        if (tokens.select && !tokens.from) {
+          if (statements = /select (.*)/.exec(str)) {
+            s = statements[1].trim();
+            if (s === "") {
+              hints.push("distinct");
+            }
+          }
+        } else if (tokens.from && !tokens.postFrom) {
           bFill = false;
           statements = /from (.*)/.exec(str);
           if (statements != null) {

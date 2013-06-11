@@ -40,7 +40,7 @@ test "Check select and from", ->
 
   str = "select "
   hints = _getHints str
-  deepEqual hints, [], "HQL: `#{str}`"
+  deepEqual hints, ["distinct"], "HQL: `#{str}`"
 
   str = "select a"
   hints = _getHints str
@@ -289,6 +289,8 @@ test "Check join", ->
   str = "from Cat c where c.dog=c.cat and c.dog=c."
   hints = _getHints str
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
+
+  str = "select distinct c from Cat c left join c.dog d with d.value > 5000.00"
 
 
 

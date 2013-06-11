@@ -55,7 +55,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "select ";
     hints = _getHints(str);
-    deepEqual(hints, [], "HQL: `" + str + "`");
+    deepEqual(hints, ["distinct"], "HQL: `" + str + "`");
     str = "select a";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -252,7 +252,8 @@
     deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
     str = "from Cat c where c.dog=c.cat and c.dog=c.";
     hints = _getHints(str);
-    return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    return str = "select distinct c from Cat c left join c.dog d with d.value > 5000.00";
   });
 
   test("additional valiable", function() {

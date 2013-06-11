@@ -25,6 +25,7 @@ sqlKeywords = [
   'update'
   'value'
   'where'
+  'when'
   'with'
   "inner"
   "outer"
