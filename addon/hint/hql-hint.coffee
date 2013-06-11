@@ -349,7 +349,7 @@ Generator = do->
         @pushLocalVars hints, options, schema
         if ["like", "in", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
           @fillSchemaProperties hints, schema
-      else if ["=","<",">"].indexOf(tks[tks.length-2]) >= 0
+      else if ["=",">=","<=","!=","=","<",">","in"].indexOf(tks[tks.length-2]) >= 0
         hints.push "and"
         hints.push "or"
         hints.push "order"

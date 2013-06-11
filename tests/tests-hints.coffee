@@ -131,17 +131,6 @@ test "Check where", ->
   hints = _getHints str
   deepEqual hints, ["like", "exist", "in"], "HQL: `#{str}`"
 
-  str = "from Cat c where c = 1 "
-  hints = _getHints str
-  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
-
-  str = "from Cat c where c = 1 or c =  2 "
-  hints = _getHints str
-  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
-
-  str = "from Cat c where c=1 "
-  hints = _getHints str
-  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
 
   str = "from Cat c where c.dog> "
   hints = _getHints str
@@ -178,6 +167,22 @@ test "Check where", ->
   str = "from Cat c where c.dog>"
   hints = _getHints str
   deepEqual hints, ["c", ":one", ":two"], "HQL: `#{str}`"
+
+  str = "from Cat c where c = 1 "
+  hints = _getHints str
+  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
+
+  str = "from Cat c where c = 1 or c =  2 "
+  hints = _getHints str
+  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
+
+  str = "from Cat c where c=1 "
+  hints = _getHints str
+  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
+
+  str = "from Cat c where c in :one "
+  hints = _getHints str
+  deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
 
 
 test "Check order", ->
