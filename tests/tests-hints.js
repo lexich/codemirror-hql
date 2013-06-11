@@ -49,7 +49,7 @@
 
     str = "";
     hints = _getHints(str);
-    deepEqual(hints, ["select", "from"], "HQL: empty");
+    deepEqual(hints, ["select", "from"].sort(), "HQL: empty");
     str = "select";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -61,7 +61,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "select a ";
     hints = _getHints(str);
-    deepEqual(hints, ["from"], "HQL: `" + str + "`");
+    deepEqual(hints, ["from", ","].sort(), "HQL: `" + str + "`");
     str = "select a from";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -82,13 +82,13 @@
     deepEqual(hints, schemaArr, "HQL: `" + str + "`");
     str = "from Cat ";
     hints = _getHints(str);
-    deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "as"].sort(), "HQL: `" + str + "`");
     str = "from Cat a";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat a ";
     hints = _getHints(str);
-    return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order"].sort(), "HQL: `" + str + "`");
+    return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "as"].sort(), "HQL: `" + str + "`");
   });
 
   test("Check where", function() {
@@ -105,7 +105,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat c where c ";
     hints = _getHints(str);
-    deepEqual(hints, ["like", "exist", "in"], "HQL: `" + str + "`");
+    deepEqual(hints, ["!=", "<", "<=", "=", ">", ">=", "exist", "in", "like"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c = 1";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -123,13 +123,13 @@
     deepEqual(hints, ["c"], "HQL: `" + str + "`");
     str = "from Cat a where a = 1 and a ";
     hints = _getHints(str);
-    deepEqual(hints, ["like", "exist", "in"], "HQL: `" + str + "`");
+    deepEqual(hints, ["!=", "<", "<=", "=", ">", ">=", "exist", "in", "like"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog> ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog=";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat where ";
     hints = _getHints(str);
     deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
@@ -138,19 +138,19 @@
     deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
     str = "from Cat c where c = ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog like ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog != ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog = ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog>";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c = 1 ";
     hints = _getHints(str);
     deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
@@ -255,17 +255,14 @@
     return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
   });
 
-  (function() {
-    return test("Fail", function() {
-      var hints, str;
+  test("Fail", function() {
+    var hints, str;
 
-      str = "select distinct c from Cat c left join c.dog d ";
-      hints = _getHints(str);
-      deepEqual(hints, ["with", "fetch", "inner", "left", "right", "join", "where", "order"].sort(), "HQL: `" + str + "`");
-      str = "select distinct c from Cat c left join c.dog d with ";
-      hints = _getHints(str);
-      return deepEqual(hints, ["d", "c"], "HQL: `" + str + "`");
-    });
+    str = "select distinct c from Cat c left join c.dog d ";
+    hints = _getHints(str);
+    str = "select distinct c from Cat c left join c.dog d with ";
+    hints = _getHints(str);
+    return deepEqual(hints, ["d", "c"], "HQL: `" + str + "`");
   });
 
   test("additional valiable", function() {

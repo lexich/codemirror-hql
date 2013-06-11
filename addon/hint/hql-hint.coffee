@@ -152,11 +152,11 @@ Generator = do->
 
     parseSelect:(str,options)->
       tokens = options.tokens
-      rSelect = /select[ ]+(.*)/.exec str
+      rSelect = /(select[ ]+distinct|select)[ ]+(.*)/.exec str
       #if select exist
       if rSelect
+        str = rSelect[2]
         tokens.select = true
-        str = rSelect[1]
         rFrom = /(.+)from(.*)/.exec str
         if rFrom
           tokens.from = true
@@ -397,7 +397,257 @@ Generator = do->
   __super__
 
 CodeMirror.hqlHint = []
-window.gen = new Generator()
+
+_Gen =->
+  this.initialize()
+  this
+
+_Gen::=
+  BLOCKS:[
+    "select"
+    "from"
+    "where"
+    "order"
+  ]
+  initialize:->
+
+  _parseToken:(token, ctx, i, tokens)->
+    block = ctx.block
+    history = ctx.history
+    config = ctx.config
+    if @BLOCKS.indexOf(token) >= 0
+      history.body.push block
+      block = ctx.block = {name: token, counter: -1, body:[]}
+
+    block.counter += 1
+    block.body.push token
+    ##############################################################################
+    # select
+    ##############################################################################
+    if block.name is "select"
+      if block.counter is 0
+        block.canAddExtract = true
+        ctx.hints = ["distinct"]
+
+      else if token is "distinct"
+        ctx.hints = []
+
+      else if token is ","
+        if block.canAddExtract = false
+          block.canAddExtract = true
+          ctx.hints = "get_hints_extract"
+        else
+          throw "Irregular select block"
+
+      else if block.canAddExtract
+        config.extract.push token
+        block.canAddExtract = false
+        ctx.hints = ["from", ","]
+
+    ##############################################################################
+    # from
+    ##############################################################################
+    else if block.name is "from"
+      if block.counter is 0
+        block.canAddType = true
+        block.canAddVars = false
+        ctx.hints = "get_hints_types"
+
+      else if block.canAddType
+        config.types.push token
+        block.canAddType = false
+        block.canAddVars = true
+        ctx.hints = ["as", "fetch", "inner", "left", "right", "join", "where", "order"]
+      else if block.canAddVars
+        if token is ","
+          block.canAddType = true
+          block.canAddVars = false
+          ctx.hints = "get_hints_types"
+        else if token is "as"
+          block.canAddVars = true
+          block.canAddType = false
+          ctx.hints = []
+        else
+          config.vars.push token
+          ctx.hists = ["fetch","inner","left","right", "join", "where", "order"]
+
+    ##############################################################################
+    # where
+    ##############################################################################
+    else if block.name is "where"
+      if block.counter is 0
+        block.canAddFirstVal = true
+        block.canAddSigh = false
+        block.canAddSecondVal = false
+        if ctx.config.vars.length > 0
+          ctx.hints = "get_hints_vars"
+        else
+          ctx.hints = "get_hints_extract"
+      else if block.canAddFirstVal
+        block.canAddFirstVal = false
+        block.canAddSigh = true
+        ctx.hints = [">","<","=","!=",">=","<=", "exist","in", "like"]
+      else if block.canAddSigh
+        block.canAddSigh = false
+        block.canAddSecondVal = true
+        ctx.hints = "get_hints_vars_and_properties"
+      else if block.canAddSecondVal
+        block.canAddSecondVal = false
+        ctx.hints = ["and","or", "order"]
+      else if ["and","or"].indexOf(token) >= 0
+        block.canAddFirstVal = true
+        ctx.hints = "get_hints_vars"
+
+
+    ##############################################################################
+    # order
+    ##############################################################################
+    else if block.name is "order"
+      if block.counter is 0
+        block.canAddVars = true
+        ctx.hints = ["by"]
+      else if block.counter is 1
+        if token is "by"
+          ctx.hints = "get_hints_vars"
+        else
+          throw "irregular order token"
+      else
+        if block.canAddVars
+          block.canAddVars = false
+          ctx.hints = [","]
+        else
+          throw "Irregular order block" if token is ","
+
+    ##############################################################################
+    # fetch
+    ##############################################################################
+    else if block.name is "fetch"
+      if block.counter is 0
+        ctx.hints = call: "get_hints_vars", add:["all"]
+      else if block.counter is 1 and  token is "all"
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order"]
+      else
+        throw "Irregular fetch block"
+
+
+    ##############################################################################
+    # inner, left, rigth
+    ##############################################################################
+    else if ["inner","left","rigth"].indexOf(block.name)
+
+      if block.counter is 0
+        if token is "inner"
+          ctx.hints = ["join"]
+        else
+          ctx.hints = ["join","outer"]
+
+      else if token is "outer"
+        ctx.hints = ["join"]
+
+      else if token is "join"
+        block.canAddSubType = true
+        block.canAddAlias = false
+        ctx.hints = call: "get_hints_vars", add:["fetch"]
+
+      else if token is "fetch"
+        ctx.hints = "get_hints_vars"
+
+      else
+        if block.canAddSubType
+          block.canAddSubType = false
+          block.canAddAlias = true
+        else if block.canAddAlias
+          block.canAddAlias = false
+          @addAlias token, block.body[body.length-2]
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order"]
+
+
+
+  parse:(_str)->
+    str = _str.replace(/[ ]+/g," ")
+    str = str.replace(/(,|>=|<=|>|<|!=|=)/g," $1 ")
+    tokens = str.split(" ")
+    ctx =
+      str:_str
+      block:
+        name:""
+        counter:0
+        body:[]
+      history:
+        body:[]
+      config:
+        extract:[]
+        vars:[]
+        types:[]
+      hints:["select","from"]
+
+    if _str.length > 0
+      lastCh = _str[_str.length-1]
+      unless [" ",",","=",">","<","."].indexOf(lastCh) >= 0
+        ctx.hints = []
+        return ctx
+
+    for i in [0..tokens.length-1]
+      token = tokens[i].trim()
+      continue if token is ""
+      @_parseToken(token, ctx, i, tokens)
+
+    ctx
+
+  get_hints_extract:(ctx, schema)->
+    result = []
+    for t in ctx.config.types
+      vars = schema.getVariablesByType(t)
+      for i in vars
+        result.push i
+    result
+
+  get_hints_types:(ctx, schema)->
+    schema.getTypes()
+
+  get_hints_vars:(ctx, schema)->
+    ctx.config.vars
+
+  get_hints_vars_and_properties:(ctx, schema)->
+    result = []
+    for i in @get_hints_vars(ctx, schema)
+      result.push i
+    for i in schema.getProperties()
+      result.push i
+    result
+
+
+  addAlias:(alias,statement)->
+
+  exec:(str, ctx, schema)->
+    if call = this[str]
+      call.call this, ctx, schema
+    else
+      []
+
+
+  getHints:(str, ctx, _schema)->
+    hints = []
+    _hints = ctx.hints
+    if Object.prototype.toString.call(_hints) == '[object Array]'
+      for i in _hints
+        hints.push i
+    else if Object.prototype.toString.call(_hints) == '[object String]'
+      schema = new Schema _schema
+      if data = @exec(_hints, ctx, schema)
+        for i in data
+          hints.push i
+    else if _hints is Object(_hints)
+      if _hints.add?
+        for i in _hints.add
+          hints.push i
+      schema = new Schema _schema
+      if data = @exec(_hints.call, ctx, schema)
+        for i in data
+          hints.push i
+    hints.sort()
+
+window.gen = new _Gen()
 
 CodeMirror.hqlHint = (cm, opt)->
   cur = cm.getCursor()
