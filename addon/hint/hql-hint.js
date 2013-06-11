@@ -45,12 +45,24 @@
         var config, result, type, _ref;
 
         result = [];
-        _ref = this.schema;
+        _ref = this.schema.types;
         for (type in _ref) {
           config = _ref[type];
           result.push(type);
         }
         return result;
+      },
+      getVariablesByType: function(_type) {
+        var results, type, v, vars, _ref;
+
+        results = [];
+        if (vars = (_ref = this.schema.types[_type]) != null ? _ref.vars : void 0) {
+          for (v in vars) {
+            type = vars[v];
+            results.push(v);
+          }
+        }
+        return results;
       },
       getVariables: function(_type, variables) {
         var i, result, type, v, vars, _i, _ref, _ref1, _ref2;
@@ -59,10 +71,10 @@
         for (i = _i = 0, _ref = variables.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
           v = variables[i];
           if (i === 0) {
-            vars = (_ref1 = this.schema[_type]) != null ? _ref1.vars : void 0;
+            vars = (_ref1 = this.schema.types[_type]) != null ? _ref1.vars : void 0;
           } else {
             type = vars[v];
-            vars = (_ref2 = this.schema[type]) != null ? _ref2.vars : void 0;
+            vars = (_ref2 = this.schema.types[type]) != null ? _ref2.vars : void 0;
           }
           if (vars == null) {
             return [];
@@ -72,6 +84,17 @@
         for (v in vars) {
           type = vars[v];
           result.push(v);
+        }
+        return result;
+      },
+      getProperties: function() {
+        var item, result, _i, _len, _ref, _ref1;
+
+        result = [];
+        _ref1 = (_ref = this.schema.properties) != null ? _ref : [];
+        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+          item = _ref1[_i];
+          result.push(":" + item);
         }
         return result;
       }
@@ -154,11 +177,7 @@
             res = pairParam.trim().split(/[ ]+|[ ]+as[ ]+/);
             if (res.length === 1) {
               sType = res[0].trim();
-              if (!(options.vars.length > options.types.length)) {
-                sVar = sType;
-              } else {
-                sVar = options.vars[options.types.length];
-              }
+              sVar = null;
             } else if (res.length === 2) {
               sType = res[0];
               sVar = res[1];
@@ -170,11 +189,15 @@
             }
             if (!(sType === "" && sVar === "")) {
               this.uniquePush(options.types, sType);
-              this.uniquePush(options.vars, sVar);
+              if (sVar) {
+                this.uniquePush(options.vars, sVar);
+              }
               if (mapping[sType] == null) {
                 mapping[sType] = [];
               }
-              this.uniquePush(mapping[sType], sVar);
+              if (sVar) {
+                this.uniquePush(mapping[sType], sVar);
+              }
               options.mappingVar[sVar] = sType;
             }
           }
@@ -355,11 +378,11 @@
           token = lastData.token;
           statement = lastData.statement;
           s = statement.trim();
-          this.checkWhere(hints, token, statement, s, options) || this.checkOrder(hints, token, statement, s, options) || this.checkInnerLeftRigth(hints, token, statement, s, options) || this.checkJoinFetch(hints, token, statement, s, options) || this.checkFetch(hints, token, statement, s, options) || this.checkOuter(hints, token, statement, s, options);
+          this.checkWhere(hints, token, statement, s, options, schema) || this.checkOrder(hints, token, statement, s, options, schema) || this.checkInnerLeftRigth(hints, token, statement, s, options, schema) || this.checkJoinFetch(hints, token, statement, s, options, schema) || this.checkOuter(hints, token, statement, s, options, schema);
         }
         return hints;
       },
-      checkOuter: function(hints, token, statement, s, options) {
+      checkOuter: function(hints, token, statement, s, options, schema) {
         var lastToken, spToken;
 
         spToken = token.split(" ");
@@ -372,7 +395,7 @@
         }
         return true;
       },
-      checkJoinFetch: function(hints, token, statement, s, options) {
+      checkJoinFetch: function(hints, token, statement, s, options, schema) {
         var item, lastToken, spToken, _i, _len, _ref;
 
         spToken = token.split(" ");
@@ -383,7 +406,7 @@
         if (s === "") {
           if (lastToken === "join") {
             hints.push("fetch");
-            this.pushLocalVars(hints, options);
+            this.pushLocalVars(hints, options, schema);
           } else if (lastToken === "fetch") {
             hints.push("all");
           }
@@ -396,7 +419,7 @@
         }
         return true;
       },
-      checkInnerLeftRigth: function(hints, token, statement, s, options) {
+      checkInnerLeftRigth: function(hints, token, statement, s, options, schema) {
         var lastToken, spToken;
 
         spToken = token.split(" ");
@@ -410,17 +433,43 @@
         }
         return true;
       },
-      checkWhere: function(hints, token, statement, s, options) {
-        var lastTks, tks;
+      fillSchemaProperties: function(hints, schema) {
+        var item, _i, _len, _ref, _results;
+
+        _ref = schema.getProperties();
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          item = _ref[_i];
+          _results.push(hints.push(item));
+        }
+        return _results;
+      },
+      checkWhere: function(hints, token, statement, s, options, schema) {
+        var lastTks, tks, _i, _j, _len, _tks;
 
         if (token !== "where") {
           return false;
         }
-        tks = s.replace(/(>=|<=|!=|=|<|>)/g, " $1 ").replace(/[ ]+/g, " ").split(" ");
+        _tks = s.replace(/(>=|<=|!=|=|<|>)/g, " $1 ").replace(/[ ]+/g, " ").split(" ");
+        tks = [];
+        for (_j = 0, _len = _tks.length; _j < _len; _j++) {
+          _i = _tks[_j];
+          _i = _i.trim();
+          if (_i !== "") {
+            tks.push(_i);
+          }
+        }
+        if (tks.length === 0) {
+          this.pushLocalVars(hints, options, schema);
+          return true;
+        }
         lastTks = tks[tks.length - 1];
-        if (["", "and", "or", "like", "in", "exist", "=", ">=", "<=", "!=", "=", "<", ">"].indexOf(lastTks) >= 0) {
-          this.pushLocalVars(hints, options);
-        } else if (tks[tks.length - 2] === "=") {
+        if (["and", "or", "like", "in", "exist", "=", ">=", "<=", "!=", "=", "<", ">"].indexOf(lastTks) >= 0) {
+          this.pushLocalVars(hints, options, schema);
+          if (["like", "in", "exist", "=", ">=", "<=", "!=", "=", "<", ">"].indexOf(lastTks) >= 0) {
+            this.fillSchemaProperties(hints, schema);
+          }
+        } else if (["=", "<", ">"].indexOf(tks[tks.length - 2]) >= 0) {
           hints.push("and");
           hints.push("or");
           hints.push("order");
@@ -431,7 +480,7 @@
         }
         return true;
       },
-      checkOrder: function(hints, token, statement, s, options) {
+      checkOrder: function(hints, token, statement, s, options, schema) {
         var lastTks, tks;
 
         if (token !== "order") {
@@ -441,20 +490,32 @@
           tks = statement.split("by");
           lastTks = tks[1].trim();
           if (lastTks === "" || lastTks[lastTks.length - 1] === ",") {
-            this.pushLocalVars(hints, options);
+            this.pushLocalVars(hints, options, schema);
           }
         } else {
           hints.push("by");
         }
         return true;
       },
-      pushLocalVars: function(hints, options) {
-        var item, _i, _len, _ref;
+      pushLocalVars: function(hints, options, schema) {
+        var item, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _type;
 
-        _ref = options.vars.sort();
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          item = _ref[_i];
-          hints.push(item);
+        if (options.vars.length > 0) {
+          _ref = options.vars;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            item = _ref[_i];
+            hints.push(item);
+          }
+        } else {
+          _ref1 = options.types.sort();
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            _type = _ref1[_j];
+            _ref2 = schema.getVariablesByType(_type);
+            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+              item = _ref2[_k];
+              hints.push(item);
+            }
+          }
         }
         return this;
       }

@@ -5,31 +5,34 @@
   gen = window.gen;
 
   window.schema = {
-    Cat: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
+    types: {
+      Cat: {
+        vars: {
+          dog: "Dog",
+          fish: "Fish"
+        }
+      },
+      Dog: {
+        vars: {
+          dog: "Dog",
+          fish: "Fish"
+        }
+      },
+      Fish: {
+        vars: {
+          dog: "Dog",
+          fish: "Fish"
+        }
+      },
+      "org.java.Test": {
+        vars: {
+          cat: "Cat",
+          dog: "Dog",
+          fish: "Fish"
+        }
       }
     },
-    Dog: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
-      }
-    },
-    Fish: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
-      }
-    },
-    "org.java.Test": {
-      vars: {
-        cat: "Cat",
-        dog: "Dog",
-        fish: "Fish"
-      }
-    }
+    properties: ["one", "two"]
   };
 
   window.schemaArr = ["Cat", "Dog", "Fish", "org.java.Test"].sort();
@@ -94,12 +97,6 @@
     str = "from Cat c where";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
-    str = "select c from Cat where ";
-    hints = _getHints(str);
-    deepEqual(hints, ["Cat"], "HQL: `" + str + "`");
-    str = "from Cat where ";
-    hints = _getHints(str);
-    deepEqual(hints, ["Cat"], "HQL: `" + str + "`");
     str = "from Cat c where ";
     hints = _getHints(str);
     deepEqual(hints, ["c"], "HQL: `" + str + "`");
@@ -109,9 +106,6 @@
     str = "from Cat c where c ";
     hints = _getHints(str);
     deepEqual(hints, ["like", "exist", "in"], "HQL: `" + str + "`");
-    str = "from Cat c where c = ";
-    hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
     str = "from Cat c where c = 1";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -139,24 +133,33 @@
     str = "from Cat c where c=1 ";
     hints = _getHints(str);
     deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
-    str = "from Cat c where c.dog like ";
-    hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
-    str = "from Cat c where c.dog != ";
-    hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
-    str = "from Cat c where c.dog = ";
-    hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
     str = "from Cat c where c.dog> ";
     hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
-    str = "from Cat c where c.dog>";
-    hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
     str = "from Cat c where c.dog=";
     hints = _getHints(str);
-    return deepEqual(hints, ["c"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    str = "from Cat where ";
+    hints = _getHints(str);
+    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    str = "select c from Cat where ";
+    hints = _getHints(str);
+    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    str = "from Cat c where c = ";
+    hints = _getHints(str);
+    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    str = "from Cat c where c.dog like ";
+    hints = _getHints(str);
+    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    str = "from Cat c where c.dog != ";
+    hints = _getHints(str);
+    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    str = "from Cat c where c.dog = ";
+    hints = _getHints(str);
+    deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
+    str = "from Cat c where c.dog>";
+    hints = _getHints(str);
+    return deepEqual(hints, ["c", ":one", ":two"], "HQL: `" + str + "`");
   });
 
   test("Check order", function() {
@@ -256,9 +259,6 @@
     hints = _getHints(str);
     deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
     str = "select f.dog from Fish f where f.";
-    hints = _getHints(str);
-    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
-    str = "from Cat where Cat.";
     hints = _getHints(str);
     return deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
   });

@@ -16,9 +16,8 @@ test "select b from Cat",->
   equal options.original, str
   equal options.types.length, 1
   equal options.types[0], "Cat"
-  equal options.vars.length, 1
-  equal options.vars[0], "Cat"
-  equal options.mapping["Cat"][0],"Cat"
+  equal options.vars.length, 0
+  equal options.mapping["Cat"][0],null
   equal options.tokens.select, true
   equal options.tokens.from, true
   equal options.tokens.postFrom, false
@@ -69,11 +68,10 @@ test "from Cat b, Dog",->
   equal options.types.length, 2
   equal options.types[0], "Cat"
   equal options.types[1], "Dog"
-  equal options.vars.length, 2
+  equal options.vars.length, 1
   equal options.vars[0], "b"
-  equal options.vars[1], "Dog"
   equal options.mapping["Cat"][0],"b"
-  equal options.mapping["Dog"][0],"Dog"
+  equal options.mapping["Dog"][0],null
   equal options.tokens.select, false
   equal options.tokens.from, true
   equal options.tokens.postFrom, false
@@ -85,11 +83,10 @@ test "from Cat as b, Dog",->
   equal options.types.length, 2
   equal options.types[0], "Cat"
   equal options.types[1], "Dog"
-  equal options.vars.length, 2
+  equal options.vars.length, 1
   equal options.vars[0], "b"
-  equal options.vars[1], "Dog"
   equal options.mapping["Cat"][0],"b"
-  equal options.mapping["Dog"][0],"Dog"
+  equal options.mapping["Dog"][0],null
   equal options.tokens.select, false
   equal options.tokens.from, true
   equal options.tokens.postFrom, false

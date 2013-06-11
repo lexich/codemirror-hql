@@ -28,23 +28,36 @@ Schema = do ->
 
     getTypes:->
       result = []
-      for type, config of @schema
+      for type, config of @schema.types
         result.push type
       result
+
+    getVariablesByType:(_type)->
+      results = []
+      if vars = @schema.types[_type]?.vars
+        for v, type of vars
+          results.push v
+      results
 
     getVariables:(_type, variables)->
       vars = {}
       for i in [0..variables.length-1]
         v = variables[i]
         if i is 0
-          vars = @schema[_type]?.vars
+          vars = @schema.types[_type]?.vars
         else
           type = vars[v]
-          vars = @schema[type]?.vars
+          vars = @schema.types[type]?.vars
         return [] unless vars?
       result = []
       for v, type of vars
         result.push v
+      result
+
+    getProperties:()->
+      result = []
+      for item in @schema.properties ? []
+        result.push ":#{item}"
       result
 
   __super__
@@ -110,10 +123,7 @@ Generator = do->
 
           if res.length is 1
             sType = res[0].trim()
-            unless options.vars.length > options.types.length
-              sVar = sType
-            else
-              sVar = options.vars[options.types.length]
+            sVar = null
 
           else if res.length is 2
             sType = res[0]
@@ -128,9 +138,9 @@ Generator = do->
 
           unless sType is "" and sVar is ""
             @uniquePush options.types, sType
-            @uniquePush options.vars, sVar
+            @uniquePush options.vars, sVar if sVar
             mapping[sType] = [] unless mapping[sType]?
-            @uniquePush mapping[sType], sVar
+            @uniquePush mapping[sType], sVar if sVar
             options.mappingVar[sVar] = sType
 
       str
@@ -273,16 +283,15 @@ Generator = do->
         statement = lastData.statement
         s = statement.trim()
 
-        @checkWhere(hints, token, statement, s, options) or \
-        @checkOrder(hints, token, statement, s, options) or \
-        @checkInnerLeftRigth(hints, token, statement, s, options) or \
-        @checkJoinFetch(hints, token, statement, s, options) or \
-        @checkFetch(hints, token, statement, s, options) or \
-        @checkOuter(hints, token, statement, s, options)
+        @checkWhere(hints, token, statement, s, options, schema) or \
+        @checkOrder(hints, token, statement, s, options, schema) or \
+        @checkInnerLeftRigth(hints, token, statement, s, options, schema) or \
+        @checkJoinFetch(hints, token, statement, s, options, schema) or \
+        @checkOuter(hints, token, statement, s, options, schema)
 
       hints
 
-    checkOuter:(hints, token, statement, s, options)->
+    checkOuter:(hints, token, statement, s, options, schema)->
       spToken = token.split(" ")
       lastToken = spToken[spToken.length-1].trim()
       return false unless lastToken is "outer"
@@ -290,14 +299,14 @@ Generator = do->
         hints.push "join"
       true
 
-    checkJoinFetch:(hints, token, statement, s, options)->
+    checkJoinFetch:(hints, token, statement, s, options, schema)->
       spToken = token.split(" ")
       lastToken = spToken[spToken.length-1].trim()
       return false unless ["join","fetch"].indexOf(lastToken) >= 0
       if s is ""
         if lastToken is  "join"
           hints.push "fetch"
-          @pushLocalVars hints, options
+          @pushLocalVars hints, options, schema
         else if lastToken is "fetch"
           hints.push "all"
       else
@@ -305,7 +314,7 @@ Generator = do->
           hints.push item
       true
 
-    checkInnerLeftRigth:(hints, token, statement, s, options)->
+    checkInnerLeftRigth:(hints, token, statement, s, options, schema)->
       spToken = token.split(" ")
       lastToken = spToken[spToken.length-1].trim()
       return false if [
@@ -318,13 +327,29 @@ Generator = do->
         hints.push "outer"
       true
 
-    checkWhere:(hints, token, statement, s, options)->
+    fillSchemaProperties:(hints, schema)->
+      for item in schema.getProperties()
+        hints.push item
+
+    checkWhere:(hints, token, statement, s, options, schema)->
       return false unless token is "where"
-      tks = s.replace(/(>=|<=|!=|=|<|>)/g," $1 ").replace(/[ ]+/g," ").split(" ")
+      _tks = s.replace(/(>=|<=|!=|=|<|>)/g," $1 ").replace(/[ ]+/g," ").split(" ")
+      tks = []
+      for _i in _tks
+        _i = _i.trim()
+        tks.push _i if _i != ""
+
+      if tks.length is 0
+        @pushLocalVars hints, options, schema
+        return true
+
       lastTks = tks[tks.length-1]
-      if ["","and","or","like", "in", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
-        @pushLocalVars hints, options
-      else if tks[tks.length-2] is "="
+
+      if ["and","or","like", "in", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
+        @pushLocalVars hints, options, schema
+        if ["like", "in", "exist", "=",">=","<=","!=","=","<",">"].indexOf(lastTks) >= 0
+          @fillSchemaProperties hints, schema
+      else if ["=","<",">"].indexOf(tks[tks.length-2]) >= 0
         hints.push "and"
         hints.push "or"
         hints.push "order"
@@ -334,22 +359,25 @@ Generator = do->
         hints.push "in"
       true
 
-    checkOrder:(hints, token, statement, s, options)->
+    checkOrder:(hints, token, statement, s, options, schema)->
       return false unless token is "order"
       if s.indexOf("by") is 0
         tks = statement.split("by")
         lastTks = tks[1].trim()
         if lastTks is "" or lastTks[lastTks.length-1] is ","
-          @pushLocalVars hints, options
+          @pushLocalVars hints, options, schema
       else
         hints.push "by"
       true
 
-
-
-    pushLocalVars:(hints,options)->
-      for item in options.vars.sort()
+    pushLocalVars:(hints,options, schema)->
+      if options.vars.length > 0
+        for item in options.vars
           hints.push item
+      else
+        for _type in options.types.sort()
+          for item in schema.getVariablesByType(_type)
+            hints.push item
       this
 
   __super__

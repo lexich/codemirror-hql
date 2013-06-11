@@ -3,30 +3,34 @@
   var autocomplete, schemaInfo;
 
   schemaInfo = {
-    Cat: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
+    types: {
+      Cat: {
+        vars: {
+          dog: "Dog",
+          fish: "Fish"
+        }
+      },
+      Dog: {
+        vars: {
+          dog: "Dog",
+          fish: "Fish"
+        }
+      },
+      Fish: {
+        vars: {
+          dog: "Dog",
+          fish: "Fish"
+        }
+      },
+      "org.java.Test": {
+        vars: {
+          cat: "Cat",
+          dog: "Dog",
+          fish: "Fish"
+        }
       }
     },
-    Cat2: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
-      }
-    },
-    Dog: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
-      }
-    },
-    Fish: {
-      vars: {
-        dog: "Dog",
-        fish: "Fish"
-      }
-    }
+    properties: ["one", "two"]
   };
 
   autocomplete = function(ch) {
