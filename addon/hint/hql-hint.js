@@ -116,9 +116,12 @@
 
   _Gen.prototype = {
     BLOCKS: ["select", "from", "where", "order", "inner", "left", "right", "fetch", "with", "group"],
+    collectionExpr: ["size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"],
+    collectionSigh: [">", "<", "=", "!=", ">=", "<=", "exist", "in", "like"],
+    collectionPostFrom: ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"],
     initialize: function() {},
     _parseToken: function(token, ctx, i, tokens) {
-      var block, collectionExpr, config, history;
+      var block, config, history;
 
       block = ctx.block;
       history = ctx.history;
@@ -165,7 +168,7 @@
           config.types.push(token);
           block.canAddType = false;
           block.canAddVars = true;
-          return ctx.hints = ["as", "fetch", "inner", "left", "right", "join", "where", "order"];
+          return ctx.hints = ["as"].concat(this.collectionPostFrom);
         } else if (block.canAddVars) {
           if (token === ",") {
             block.canAddType = true;
@@ -178,11 +181,10 @@
           } else {
             config.vars.push(token);
             config.mappingVar[token] = config.types[config.types.length - 1];
-            return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order"];
+            return ctx.hints = [].concat(this.collectionPostFrom);
           }
         }
       } else if (block.name === "where") {
-        collectionExpr = ["size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"];
         if (block.counter === 0) {
           block.canAddFirstVal = true;
           block.canAddSigh = false;
@@ -191,16 +193,16 @@
           if (ctx.config.vars.length > 0) {
             return ctx.hints = {
               call: "get_hints_vars",
-              add: collectionExpr
+              add: this.collectionExpr
             };
           } else {
             return ctx.hints = {
               call: "get_hints_extract",
-              add: collectionExpr
+              add: this.collectionExpr
             };
           }
         } else if (block.canAddFirstVal || block.canAddSecondVal) {
-          if (collectionExpr.indexOf(token) >= 0) {
+          if (this.collectionExpr.indexOf(token) >= 0) {
             return ctx.hints = ["("];
           } else if (token === "(") {
             block.openBracket = true;
@@ -212,7 +214,7 @@
             block.canAddFirstVal = false;
             if (block.canAddFirstVal) {
               block.canAddSigh = true;
-              return ctx.hints = [">", "<", "=", "!=", ">=", "<=", "exist", "in", "like"];
+              return ctx.hints = [].concat(this.collectionSigh);
             } else if (block.canAddSecondVal) {
               return ctx.hints = ["and", "or", "order"];
             }
@@ -222,7 +224,7 @@
             if (block.canAddFirstVal) {
               block.canAddFirstVal = false;
               block.canAddSigh = true;
-              return ctx.hints = [">", "<", "=", "!=", ">=", "<=", "exist", "in", "like"];
+              return ctx.hints = [].concat(this.collectionSigh);
             } else if (block.canAddSecondVal) {
               block.canAddSecondVal = false;
               return ctx.hints = ["and", "or", "order"];
@@ -233,7 +235,7 @@
           block.canAddSecondVal = true;
           return ctx.hints = {
             call: "get_hints_vars_and_properties",
-            add: collectionExpr
+            add: this.collectionExpr
           };
         } else if (["and", "or"].indexOf(token) >= 0) {
           block.canAddFirstVal = true;
@@ -298,11 +300,11 @@
         } else if (block.canAddSubType) {
           block.canAddSubType = false;
           block.canAddAlias = true;
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group", "as", "with"];
+          return ctx.hints = ["as"].concat(this.collectionPostFrom);
         } else if (block.canAddAlias) {
           block.canAddAlias = false;
           this.addAlias(ctx, token, block.body[block.body.length - 2]);
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"];
+          return ctx.hints = [].concat(this.collectionPostFrom);
         }
       } else if (block.name === "with") {
         if (block.counter === 0) {
@@ -316,7 +318,7 @@
         } else if (block.canAddAlias) {
           block.canAddAlias = false;
           this.addAlias(ctx, token, block.body[block.body.length - 2]);
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group"];
+          return ctx.hints = [].concat(this.collectionPostFrom);
         }
       } else if (block.name === "group") {
         if (block.counter === 0) {

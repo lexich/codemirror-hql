@@ -85,6 +85,9 @@ _Gen::=
     "with"
     "group"
   ]
+  collectionExpr: ["size","maxelement","maxindex","minelement", "minindex","elements","indices"]
+  collectionSigh: [">","<","=","!=",">=","<=", "exist","in", "like"]
+  collectionPostFrom: ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
   initialize:->
 
   _parseToken:(token, ctx, i, tokens)->
@@ -140,7 +143,7 @@ _Gen::=
         config.types.push token
         block.canAddType = false
         block.canAddVars = true
-        ctx.hints = ["as", "fetch", "inner", "left", "right", "join", "where", "order"]
+        ctx.hints = ["as"].concat(@collectionPostFrom)
       else if block.canAddVars
         if token is ","
           block.canAddType = true
@@ -153,13 +156,12 @@ _Gen::=
         else
           config.vars.push token
           config.mappingVar[token] = config.types[config.types.length-1]
-          ctx.hints = ["fetch","inner","left","right", "join", "where", "order"]
+          ctx.hints = [].concat(@collectionPostFrom)
 
     ##############################################################################
     # where
     ##############################################################################
     else if block.name is "where"
-      collectionExpr = ["size","maxelement","maxindex","minelement", "minindex","elements","indices"]
 
       if block.counter is 0
         block.canAddFirstVal = true
@@ -167,11 +169,11 @@ _Gen::=
         block.canAddSecondVal = false
         block.openBracket = false
         if ctx.config.vars.length > 0
-          ctx.hints = call:"get_hints_vars", add:collectionExpr
+          ctx.hints = call:"get_hints_vars", add:@collectionExpr
         else
-          ctx.hints = call:"get_hints_extract", add:collectionExpr
+          ctx.hints = call:"get_hints_extract", add:@collectionExpr
       else if block.canAddFirstVal or block.canAddSecondVal
-        if collectionExpr.indexOf(token) >= 0
+        if @collectionExpr.indexOf(token) >= 0
           ctx.hints = ["("]
         else if token is "("
           block.openBracket = true
@@ -181,7 +183,7 @@ _Gen::=
           block.canAddFirstVal = false
           if block.canAddFirstVal
             block.canAddSigh = true
-            ctx.hints = [">","<","=","!=",">=","<=", "exist","in", "like"]
+            ctx.hints = [].concat(@collectionSigh)
           else if block.canAddSecondVal
             ctx.hints = ["and","or", "order"]
         else if block.openBracket
@@ -190,7 +192,7 @@ _Gen::=
           if block.canAddFirstVal
             block.canAddFirstVal = false
             block.canAddSigh = true
-            ctx.hints = [">","<","=","!=",">=","<=", "exist","in", "like"]
+            ctx.hints = [].concat(@collectionSigh)
           else if block.canAddSecondVal
             block.canAddSecondVal = false
             ctx.hints = ["and","or", "order"]
@@ -199,7 +201,7 @@ _Gen::=
       else if block.canAddSigh
         block.canAddSigh = false
         block.canAddSecondVal = true
-        ctx.hints = call:"get_hints_vars_and_properties", add:collectionExpr
+        ctx.hints = call:"get_hints_vars_and_properties", add:@collectionExpr
 
       else if ["and","or"].indexOf(token) >= 0
         block.canAddFirstVal = true
@@ -271,11 +273,11 @@ _Gen::=
       else if block.canAddSubType
         block.canAddSubType = false
         block.canAddAlias = true
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group", "as", "with"]
+        ctx.hints = ["as"].concat(@collectionPostFrom)
       else if block.canAddAlias
         block.canAddAlias = false
         @addAlias ctx, token, block.body[block.body.length-2]
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
+        ctx.hints = [].concat(@collectionPostFrom)
 
     ##############################################################################
     # with
@@ -292,7 +294,7 @@ _Gen::=
       else if block.canAddAlias
         block.canAddAlias = false
         @addAlias ctx, token, block.body[block.body.length-2]
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group"]
+        ctx.hints = [].concat(@collectionPostFrom)
 
     ##############################################################################
     # group

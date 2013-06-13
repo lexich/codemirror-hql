@@ -82,13 +82,13 @@
     deepEqual(hints, schemaArr, "HQL: `" + str + "`");
     str = "from Cat ";
     hints = _getHints(str);
-    deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "as"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "as", "group", "with"].sort(), "HQL: `" + str + "`");
     str = "from Cat a";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat a ";
     hints = _getHints(str);
-    return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order"].sort(), "HQL: `" + str + "`");
+    return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"].sort(), "HQL: `" + str + "`");
   });
 
   test("Check where", function() {

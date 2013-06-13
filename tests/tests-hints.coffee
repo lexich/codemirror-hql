@@ -77,7 +77,7 @@ test "Check select and from", ->
   str = "from Cat "
   hints = _getHints str
   deepEqual hints, [
-    "fetch","inner","left","right", "join", "where", "order", "as"
+    "fetch","inner","left","right", "join", "where", "order", "as", "group", "with"
   ].sort(), "HQL: `#{str}`"
 
   str = "from Cat a"
@@ -87,7 +87,7 @@ test "Check select and from", ->
   str = "from Cat a "
   hints = _getHints str
   deepEqual hints, [
-    "fetch","inner","left","right", "join", "where", "order"
+    "fetch","inner","left","right", "join", "where", "order", "group", "with"
   ].sort(), "HQL: `#{str}`"
 
 test "Check where", ->
