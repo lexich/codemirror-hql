@@ -89,7 +89,7 @@ _Gen::=
   collectionSigh: [">","<","=","!=",">=","<=", "exist","in", "like"]
   collectionPostFrom: ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
   collectionAgregate: ["count","avg", "min", "max", "sum"]
-  
+
   initialize:->
 
   _addHints:(ctx, val)->
@@ -353,7 +353,7 @@ _Gen::=
     filter = null
     if _str.length > 0
       lastCh = _str[_str.length-1]
-      unless [" ",",","=",">","<",".","("].indexOf(lastCh) >= 0
+      unless [" ",",","=",">","<",".","(","*"].indexOf(lastCh) >= 0
         filter = tokens[tokens.length-1].trim()
         if [].concat(@collectionAgregate, @collectionExpr).indexOf(filter) >= 0
           ctx.hints = ["("]
@@ -367,7 +367,7 @@ _Gen::=
     if filter?
       hints = []
       for hint in ctx.hints
-        if hint.indexOf(filter) == 0
+        if hint.indexOf(filter) == 0 or [",","(",")"].indexOf(hint) >= 0
           hints.push hint
       ctx.hints = hints
 

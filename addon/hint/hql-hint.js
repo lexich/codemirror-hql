@@ -392,7 +392,7 @@
       filter = null;
       if (_str.length > 0) {
         lastCh = _str[_str.length - 1];
-        if (!([" ", ",", "=", ">", "<", ".", "("].indexOf(lastCh) >= 0)) {
+        if (!([" ", ",", "=", ">", "<", ".", "(", "*"].indexOf(lastCh) >= 0)) {
           filter = tokens[tokens.length - 1].trim();
           if ([].concat(this.collectionAgregate, this.collectionExpr).indexOf(filter) >= 0) {
             ctx.hints = ["("];
@@ -412,7 +412,7 @@
         _ref1 = ctx.hints;
         for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
           hint = _ref1[_j];
-          if (hint.indexOf(filter) === 0) {
+          if (hint.indexOf(filter) === 0 || [",", "(", ")"].indexOf(hint) >= 0) {
             hints.push(hint);
           }
         }
