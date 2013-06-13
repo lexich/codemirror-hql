@@ -161,11 +161,11 @@
             call: "get_hints_extract",
             add: ["*"]
           });
-        } else if (block.openBracket) {
-          return this._addHints(ctx, [")"]);
         } else if (token === ")") {
           block.openBracket = false;
           return this._addHints(ctx, [",", "from"]);
+        } else if (block.openBracket) {
+          return this._addHints(ctx, [")"]);
         } else if (token === "distinct") {
           return this._addHints(ctx, []);
         } else if (token === ",") {
@@ -365,7 +365,7 @@
       }
     },
     parse: function(_str) {
-      var ctx, filter, hint, hints, i, lastCh, str, token, tokens, _i, _j, _len, _ref, _ref1;
+      var ctx, filter, hint, hints, i, index, lastCh, str, token, tokens, _i, _j, _k, _len, _ref, _ref1, _ref2;
 
       str = _str.replace(/[ ]+/g, " ");
       str = str.replace(/(,|>=|<=|>|<|!=|=|\(|\))/g, " $1 ");
@@ -393,14 +393,19 @@
       if (_str.length > 0) {
         lastCh = _str[_str.length - 1];
         if (!([" ", ",", "=", ">", "<", ".", "(", "*"].indexOf(lastCh) >= 0)) {
-          filter = tokens[tokens.length - 1].trim();
+          for (index = _i = _ref = tokens.length - 1; _ref <= 0 ? _i <= 0 : _i >= 0; index = _ref <= 0 ? ++_i : --_i) {
+            filter = tokens[index].trim();
+            if (filter !== "") {
+              break;
+            }
+          }
           if ([].concat(this.collectionAgregate, this.collectionExpr).indexOf(filter) >= 0) {
             ctx.hints = ["("];
             return ctx;
           }
         }
       }
-      for (i = _i = 0, _ref = tokens.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+      for (i = _j = 0, _ref1 = tokens.length - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
         token = tokens[i].trim();
         if (token === "") {
           continue;
@@ -409,9 +414,9 @@
       }
       if (filter != null) {
         hints = [];
-        _ref1 = ctx.hints;
-        for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
-          hint = _ref1[_j];
+        _ref2 = ctx.hints;
+        for (_k = 0, _len = _ref2.length; _k < _len; _k++) {
+          hint = _ref2[_k];
           if (hint.indexOf(filter) === 0 || [",", "(", ")"].indexOf(hint) >= 0) {
             hints.push(hint);
           }

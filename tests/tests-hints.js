@@ -76,7 +76,10 @@
     deepEqual(hints, [")"].sort(), "HQL: `" + str + "`");
     str = "select count(dog";
     hints = _getHints(str);
-    return deepEqual(hints, [")"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, [")"].sort(), "HQL: `" + str + "`");
+    str = "select avg(*)";
+    hints = _getHints(str);
+    return deepEqual(hints, [","].sort(), "HQL: `" + str + "`");
   });
 
   test("Check select from", function() {

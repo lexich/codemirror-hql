@@ -125,11 +125,11 @@ _Gen::=
       else if token is "("
         block.openBracket = true
         @_addHints ctx, call:"get_hints_extract", add:["*"]
-      else if block.openBracket
-        @_addHints ctx, [")"]
       else if token is ")"
         block.openBracket = false
         @_addHints ctx, [",","from"]
+      else if block.openBracket
+        @_addHints ctx, [")"]
       else if token is "distinct"
         @_addHints ctx, []
       else if token is ","
@@ -354,7 +354,9 @@ _Gen::=
     if _str.length > 0
       lastCh = _str[_str.length-1]
       unless [" ",",","=",">","<",".","(","*"].indexOf(lastCh) >= 0
-        filter = tokens[tokens.length-1].trim()
+        for index in [tokens.length-1..0]
+          filter = tokens[index].trim()
+          if filter != "" then break
         if [].concat(@collectionAgregate, @collectionExpr).indexOf(filter) >= 0
           ctx.hints = ["("]
           return ctx
