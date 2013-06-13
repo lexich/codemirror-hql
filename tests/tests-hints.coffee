@@ -29,7 +29,7 @@ _getHints = (str)->
   gen.getHints str, opt, schema
 
 
-test "Check select and from", ->
+test "Check select", ->
   str = ""
   hints = _getHints str
   deepEqual hints, ["select", "from"].sort(), "HQL: empty"
@@ -40,7 +40,7 @@ test "Check select and from", ->
 
   str = "select "
   hints = _getHints str
-  deepEqual hints, ["distinct"], "HQL: `#{str}`"
+  deepEqual hints, [ "*", "avg", "count", "distinct", "max", "min", "sum" ].sort(), "HQL: `#{str}`"
 
   str = "select a"
   hints = _getHints str
@@ -50,6 +50,16 @@ test "Check select and from", ->
   hints = _getHints str
   deepEqual hints, ["from", ","].sort(), "HQL: `#{str}`"
 
+  str = "select count "
+  hints = _getHints str
+  deepEqual hints, ["("].sort(), "HQL: `#{str}`"
+
+  str = "select count("
+  hints = _getHints str
+  deepEqual hints, ["*"].sort(), "HQL: `#{str}`"
+
+
+test "Check select from", ->
   str = "select a from"
   hints = _getHints str
   deepEqual hints, [], "HQL: `#{str}`"

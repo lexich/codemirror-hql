@@ -88,6 +88,8 @@ _Gen::=
   collectionExpr: ["size","maxelement","maxindex","minelement", "minindex","elements","indices"]
   collectionSigh: [">","<","=","!=",">=","<=", "exist","in", "like"]
   collectionPostFrom: ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
+  collectionAgregate: ["count","avg", "min", "max", "sum"]
+
   initialize:->
 
   _parseToken:(token, ctx, i, tokens)->
@@ -113,15 +115,24 @@ _Gen::=
     else if block.name is "select"
       if block.counter is 0
         block.canAddExtract = true
-        ctx.hints = ["distinct"]
-
+        block.openBracket = false
+        ctx.hints = call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate)
+      else if @collectionAgregate.indexOf(token) >= 0
+        ctx.hints = ["("]
+      else if token is "("
+        block.openBracket = true
+        ctx.hints = call:"get_hints_extract", add:["*"]
+      else if block.openBracket
+        ctx.hints = [")"]
+      else if token is ")"
+        block.openBracket = false
+        ctx.hints = [",","from"]
       else if token is "distinct"
         ctx.hints = []
-
       else if token is ","
         if block.canAddExtract = false
           block.canAddExtract = true
-          ctx.hints = "get_hints_extract"
+          ctx.hints = call:"get_hints_extract", add:["*"]
         else
           throw "Irregular select block"
 

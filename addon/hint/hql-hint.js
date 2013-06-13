@@ -119,6 +119,7 @@
     collectionExpr: ["size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"],
     collectionSigh: [">", "<", "=", "!=", ">=", "<=", "exist", "in", "like"],
     collectionPostFrom: ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"],
+    collectionAgregate: ["count", "avg", "min", "max", "sum"],
     initialize: function() {},
     _parseToken: function(token, ctx, i, tokens) {
       var block, config, history;
@@ -144,13 +145,33 @@
       } else if (block.name === "select") {
         if (block.counter === 0) {
           block.canAddExtract = true;
-          return ctx.hints = ["distinct"];
+          block.openBracket = false;
+          return ctx.hints = {
+            call: "get_hints_extract",
+            add: ["distinct", "*"].concat(this.collectionAgregate)
+          };
+        } else if (this.collectionAgregate.indexOf(token) >= 0) {
+          return ctx.hints = ["("];
+        } else if (token === "(") {
+          block.openBracket = true;
+          return ctx.hints = {
+            call: "get_hints_extract",
+            add: ["*"]
+          };
+        } else if (block.openBracket) {
+          return ctx.hints = [")"];
+        } else if (token === ")") {
+          block.openBracket = false;
+          return ctx.hints = [",", "from"];
         } else if (token === "distinct") {
           return ctx.hints = [];
         } else if (token === ",") {
           if (block.canAddExtract = false) {
             block.canAddExtract = true;
-            return ctx.hints = "get_hints_extract";
+            return ctx.hints = {
+              call: "get_hints_extract",
+              add: ["*"]
+            };
           } else {
             throw "Irregular select block";
           }
