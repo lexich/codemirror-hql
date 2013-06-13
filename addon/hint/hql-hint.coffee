@@ -408,6 +408,12 @@ _Gen::=
     "from"
     "where"
     "order"
+    "inner"
+    "left"
+    "right"
+    "fetch"
+    "with"
+    "group"
   ]
   initialize:->
 
@@ -422,9 +428,16 @@ _Gen::=
     block.counter += 1
     block.body.push token
     ##############################################################################
+    # dot autocomplete
+    ##############################################################################
+    if token[token.length-1] is "."
+      ctx.hints = call:"get_hints_autocomplete", args:token
+
+
+    ##############################################################################
     # select
     ##############################################################################
-    if block.name is "select"
+    else if block.name is "select"
       if block.counter is 0
         block.canAddExtract = true
         ctx.hints = ["distinct"]
@@ -469,6 +482,7 @@ _Gen::=
           ctx.hints = []
         else
           config.vars.push token
+          config.mappingVar[token] = config.types[config.types.length-1]
           ctx.hists = ["fetch","inner","left","right", "join", "where", "order"]
 
     ##############################################################################
@@ -513,27 +527,36 @@ _Gen::=
           throw "irregular order token"
       else
         if block.canAddVars
+          throw "Irregular order block" if token is ","
           block.canAddVars = false
           ctx.hints = [","]
+
         else
-          throw "Irregular order block" if token is ","
+          block.canAddVars = true
+          ctx.hints = "get_hints_vars"
 
     ##############################################################################
     # fetch
     ##############################################################################
     else if block.name is "fetch"
       if block.counter is 0
+        block.canAddSubType = true
+        block.canAddAlias = false
         ctx.hints = call: "get_hints_vars", add:["all"]
-      else if block.counter is 1 and  token is "all"
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order"]
       else
-        throw "Irregular fetch block"
+        if block.canAddSubType
+          block.canAddSubType = false
+          block.canAddAlias = true
+        else if block.canAddAlias
+          block.canAddAlias = true
+          @addAlias ctx, token, block.body[block.body.length-2]
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "as", "group"]
 
 
     ##############################################################################
     # inner, left, rigth
     ##############################################################################
-    else if ["inner","left","rigth"].indexOf(block.name)
+    else if ["inner","left","right"].indexOf(block.name) >= 0
 
       if block.counter is 0
         if token is "inner"
@@ -549,19 +572,54 @@ _Gen::=
         block.canAddAlias = false
         ctx.hints = call: "get_hints_vars", add:["fetch"]
 
-      else if token is "fetch"
+      #else if token is "fetch"
+      #  ctx.hints = "get_hints_vars"
+
+      else if block.canAddSubType
+        block.canAddSubType = false
+        block.canAddAlias = true
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group", "as", "with"]
+      else if block.canAddAlias
+        block.canAddAlias = false
+        @addAlias ctx, token, block.body[block.body.length-2]
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
+
+    ##############################################################################
+    # with
+    ##############################################################################
+    else if block.name is "with"
+      if block.counter is 0
+        block.canAddFirstVar = true
+        block.canAddAlias = false
         ctx.hints = "get_hints_vars"
+      else if block.canAddFirstVar
+        block.canAddFirstVar = false
+        block.canAddAlias = true
+        ctx.hints = []
+      else if block.canAddAlias
+        block.canAddAlias = false
+        @addAlias ctx, token, block.body[block.body.length-2]
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group"]
 
-      else
-        if block.canAddSubType
-          block.canAddSubType = false
-          block.canAddAlias = true
-        else if block.canAddAlias
-          block.canAddAlias = false
-          @addAlias token, block.body[body.length-2]
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order"]
-
-
+    ##############################################################################
+    # group
+    ##############################################################################
+    else if block.name is "group"
+      if block.counter is 0
+        ctx.hints = ["by"]
+        block.canAddVars = false
+      else if block.counter is 1
+        if token is "by"
+          block.canAddVars = true
+          ctx.hints = "get_hints_vars"
+        else
+          throw "Irregular group block"
+      else if block.canAddVars
+        block.canAddVars = false
+        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group", ","]
+      else if token is ","
+        block.canAddVars = true
+        ctx.hints = "get_hints_vars"
 
   parse:(_str)->
     str = _str.replace(/[ ]+/g," ")
@@ -579,6 +637,8 @@ _Gen::=
         extract:[]
         vars:[]
         types:[]
+        mappingVar:{}
+        alias:{}
       hints:["select","from"]
 
     if _str.length > 0
@@ -593,6 +653,20 @@ _Gen::=
       @_parseToken(token, ctx, i, tokens)
 
     ctx
+
+  get_hints_autocomplete:(ctx, schema, args)->
+    variables = args.split(".")
+    variables = variables.slice(0,variables.length-1)
+    firstToken = variables[0]
+    variablePath = @findFullPath(ctx, firstToken)
+    _vars = []
+    for item in variablePath
+      _vars.push item
+    for i in [0..variables.length-1]
+      _vars.push variables[i]
+
+    _baseType = ctx.config.mappingVar[_vars[0]]
+    schema.getVariables(_baseType, _vars)
 
   get_hints_extract:(ctx, schema)->
     result = []
@@ -616,12 +690,31 @@ _Gen::=
       result.push i
     result
 
+  findFullPath:(ctx, name)->
+    alias = ctx.config.alias
+    path = name
+    result = []
+    while true
+      tmp = alias[path]
+      if tmp
+        tkns = tmp.trim().split(".")
+        for i in [tkns.length-1, 0]
+          item = tkns[i].trim()
+          if item is "" then continue
+          result.push tkns[i]
+        path = tkns[0]
+      else
+        break
+    result.reverse()
 
-  addAlias:(alias,statement)->
 
-  exec:(str, ctx, schema)->
+  addAlias:(ctx, alias,statement)->
+    ctx.config.alias[alias] = statement
+    ctx.config.vars.push alias
+
+  exec:(str, ctx, schema, args)->
     if call = this[str]
-      call.call this, ctx, schema
+      call.call this, ctx, schema, args
     else
       []
 
@@ -634,7 +727,7 @@ _Gen::=
         hints.push i
     else if Object.prototype.toString.call(_hints) == '[object String]'
       schema = new Schema _schema
-      if data = @exec(_hints, ctx, schema)
+      if data = @exec(_hints, ctx, schema, [])
         for i in data
           hints.push i
     else if _hints is Object(_hints)
@@ -642,7 +735,7 @@ _Gen::=
         for i in _hints.add
           hints.push i
       schema = new Schema _schema
-      if data = @exec(_hints.call, ctx, schema)
+      if data = @exec(_hints.call, ctx, schema, _hints.args)
         for i in data
           hints.push i
     hints.sort()

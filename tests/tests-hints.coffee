@@ -222,7 +222,7 @@ test "Check order", ->
 test "Check join", ->
   str = "from Cat c inner "
   hints = _getHints str
-  deepEqual hints, ["join","outer"], "HQL: `#{str}`"
+  deepEqual hints, ["join"], "HQL: `#{str}`"
 
   str = "from Cat c left "
   hints = _getHints str
@@ -236,51 +236,47 @@ test "Check join", ->
 test "Check join", ->
   str = "from Cat c fetch "
   hints = _getHints str
-  deepEqual hints, ["all"], "HQL: `#{str}`"
-
-  str = "from Cat c inner "
-  hints = _getHints str
-  deepEqual hints, ["join","outer"], "HQL: `#{str}`"
+  deepEqual hints, ["all", "c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c inner join "
   hints = _getHints str
-  deepEqual hints, ["fetch","c"], "HQL: `#{str}`"
+  deepEqual hints, ["fetch","c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c inner join fetch "
   hints = _getHints str
-  deepEqual hints, ["all"], "HQL: `#{str}`"
+  deepEqual hints, ["all", "c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c left "
   hints = _getHints str
-  deepEqual hints, ["join","outer"], "HQL: `#{str}`"
+  deepEqual hints, ["join","outer"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c left join "
   hints = _getHints str
-  deepEqual hints, ["fetch","c"], "HQL: `#{str}`"
+  deepEqual hints, ["fetch","c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c left join fetch "
   hints = _getHints str
-  deepEqual hints, ["all"], "HQL: `#{str}`"
+  deepEqual hints, ["all","c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c right "
   hints = _getHints str
-  deepEqual hints, ["join","outer"], "HQL: `#{str}`"
+  deepEqual hints, ["join","outer"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c right join "
   hints = _getHints str
-  deepEqual hints, ["fetch","c"], "HQL: `#{str}`"
+  deepEqual hints, ["fetch","c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c right join fetch "
   hints = _getHints str
-  deepEqual hints, ["all"], "HQL: `#{str}`"
+  deepEqual hints, ["all","c"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c left join c.dog "
   hints = _getHints str
-  deepEqual hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group" ].sort()
+  deepEqual hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group", "with" ].sort(), "HQL: `#{str}`"
 
   str = "from Cat c left join fetch c.dog "
   hints = _getHints str
-  deepEqual hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group" ].sort()
+  deepEqual hints, ["as", "fetch", "inner", "join", "right", "left", "order", "where", "group" ].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c.dog=c.cat and c.dog=c."
   hints = _getHints str
@@ -291,14 +287,14 @@ test "Check join", ->
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
 
 
-test "Fail", ->
+test "Check with", ->
   str = "select distinct c from Cat c left join c.dog d "
   hints = _getHints str
-  #deepEqual hints, ["with", "fetch","inner","left","right", "join", "where", "order"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["with", "fetch","inner","left","right", "join", "where", "order", "group"].sort(), "HQL: `#{str}`"
 
   str = "select distinct c from Cat c left join c.dog d with "
   hints = _getHints str
-  deepEqual hints, ["d","c"], "HQL: `#{str}`"
+  deepEqual hints, ["d","c"].sort(), "HQL: `#{str}`"
 
 
 
@@ -311,6 +307,14 @@ test "additional valiable", ->
   hints = _getHints str
   deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
 
+test "check group by", ->
+  str = "from Cat c group "
+  hints = _getHints str
+  deepEqual hints, ["by"], "HQL: `#{str}`"
+
+  str = "from Cat c group by "
+  hints = _getHints str
+  deepEqual hints, ["c"], "HQL: `#{str}`"
 
 ->
   test "multiple class",->
@@ -325,15 +329,7 @@ test "Fail", ->
   str = "from Cat where dog in elements(cats)"
 
 
-->
-  test "check group by", ->
-    str = "from Cat c group "
-    hints = _getHints str
-    deepEqual hints, ["by"], "HQL: `#{str}`"
 
-    str = "from Cat c group by "
-    hints = _getHints str
-    deepEqual hints, ["c"], "HQL: `#{str}`"
 
 
 

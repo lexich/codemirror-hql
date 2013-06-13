@@ -557,7 +557,7 @@
   };
 
   _Gen.prototype = {
-    BLOCKS: ["select", "from", "where", "order"],
+    BLOCKS: ["select", "from", "where", "order", "inner", "left", "right", "fetch", "with", "group"],
     initialize: function() {},
     _parseToken: function(token, ctx, i, tokens) {
       var block, config, history;
@@ -575,7 +575,12 @@
       }
       block.counter += 1;
       block.body.push(token);
-      if (block.name === "select") {
+      if (token[token.length - 1] === ".") {
+        return ctx.hints = {
+          call: "get_hints_autocomplete",
+          args: token
+        };
+      } else if (block.name === "select") {
         if (block.counter === 0) {
           block.canAddExtract = true;
           return ctx.hints = ["distinct"];
@@ -614,6 +619,7 @@
             return ctx.hints = [];
           } else {
             config.vars.push(token);
+            config.mappingVar[token] = config.types[config.types.length - 1];
             return ctx.hists = ["fetch", "inner", "left", "right", "join", "where", "order"];
           }
         }
@@ -654,26 +660,35 @@
           }
         } else {
           if (block.canAddVars) {
-            block.canAddVars = false;
-            return ctx.hints = [","];
-          } else {
             if (token === ",") {
               throw "Irregular order block";
             }
+            block.canAddVars = false;
+            return ctx.hints = [","];
+          } else {
+            block.canAddVars = true;
+            return ctx.hints = "get_hints_vars";
           }
         }
       } else if (block.name === "fetch") {
         if (block.counter === 0) {
+          block.canAddSubType = true;
+          block.canAddAlias = false;
           return ctx.hints = {
             call: "get_hints_vars",
             add: ["all"]
           };
-        } else if (block.counter === 1 && token === "all") {
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order"];
         } else {
-          throw "Irregular fetch block";
+          if (block.canAddSubType) {
+            block.canAddSubType = false;
+            block.canAddAlias = true;
+          } else if (block.canAddAlias) {
+            block.canAddAlias = true;
+            this.addAlias(ctx, token, block.body[block.body.length - 2]);
+          }
+          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "as", "group"];
         }
-      } else if (["inner", "left", "rigth"].indexOf(block.name)) {
+      } else if (["inner", "left", "right"].indexOf(block.name) >= 0) {
         if (block.counter === 0) {
           if (token === "inner") {
             return ctx.hints = ["join"];
@@ -689,17 +704,46 @@
             call: "get_hints_vars",
             add: ["fetch"]
           };
-        } else if (token === "fetch") {
+        } else if (block.canAddSubType) {
+          block.canAddSubType = false;
+          block.canAddAlias = true;
+          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group", "as", "with"];
+        } else if (block.canAddAlias) {
+          block.canAddAlias = false;
+          this.addAlias(ctx, token, block.body[block.body.length - 2]);
+          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"];
+        }
+      } else if (block.name === "with") {
+        if (block.counter === 0) {
+          block.canAddFirstVar = true;
+          block.canAddAlias = false;
           return ctx.hints = "get_hints_vars";
-        } else {
-          if (block.canAddSubType) {
-            block.canAddSubType = false;
-            block.canAddAlias = true;
-          } else if (block.canAddAlias) {
-            block.canAddAlias = false;
-            this.addAlias(token, block.body[body.length - 2]);
+        } else if (block.canAddFirstVar) {
+          block.canAddFirstVar = false;
+          block.canAddAlias = true;
+          return ctx.hints = [];
+        } else if (block.canAddAlias) {
+          block.canAddAlias = false;
+          this.addAlias(ctx, token, block.body[block.body.length - 2]);
+          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group"];
+        }
+      } else if (block.name === "group") {
+        if (block.counter === 0) {
+          ctx.hints = ["by"];
+          return block.canAddVars = false;
+        } else if (block.counter === 1) {
+          if (token === "by") {
+            block.canAddVars = true;
+            return ctx.hints = "get_hints_vars";
+          } else {
+            throw "Irregular group block";
           }
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order"];
+        } else if (block.canAddVars) {
+          block.canAddVars = false;
+          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group", ","];
+        } else if (token === ",") {
+          block.canAddVars = true;
+          return ctx.hints = "get_hints_vars";
         }
       }
     },
@@ -722,7 +766,9 @@
         config: {
           extract: [],
           vars: [],
-          types: []
+          types: [],
+          mappingVar: {},
+          alias: {}
         },
         hints: ["select", "from"]
       };
@@ -741,6 +787,24 @@
         this._parseToken(token, ctx, i, tokens);
       }
       return ctx;
+    },
+    get_hints_autocomplete: function(ctx, schema, args) {
+      var firstToken, i, item, variablePath, variables, _baseType, _i, _j, _len, _ref, _vars;
+
+      variables = args.split(".");
+      variables = variables.slice(0, variables.length - 1);
+      firstToken = variables[0];
+      variablePath = this.findFullPath(ctx, firstToken);
+      _vars = [];
+      for (_i = 0, _len = variablePath.length; _i < _len; _i++) {
+        item = variablePath[_i];
+        _vars.push(item);
+      }
+      for (i = _j = 0, _ref = variables.length - 1; 0 <= _ref ? _j <= _ref : _j >= _ref; i = 0 <= _ref ? ++_j : --_j) {
+        _vars.push(variables[i]);
+      }
+      _baseType = ctx.config.mappingVar[_vars[0]];
+      return schema.getVariables(_baseType, _vars);
     },
     get_hints_extract: function(ctx, schema) {
       var i, result, t, vars, _i, _j, _len, _len1, _ref;
@@ -779,12 +843,41 @@
       }
       return result;
     },
-    addAlias: function(alias, statement) {},
-    exec: function(str, ctx, schema) {
+    findFullPath: function(ctx, name) {
+      var alias, i, item, path, result, tkns, tmp, _i, _len, _ref;
+
+      alias = ctx.config.alias;
+      path = name;
+      result = [];
+      while (true) {
+        tmp = alias[path];
+        if (tmp) {
+          tkns = tmp.trim().split(".");
+          _ref = [tkns.length - 1, 0];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            i = _ref[_i];
+            item = tkns[i].trim();
+            if (item === "") {
+              continue;
+            }
+            result.push(tkns[i]);
+          }
+          path = tkns[0];
+        } else {
+          break;
+        }
+      }
+      return result.reverse();
+    },
+    addAlias: function(ctx, alias, statement) {
+      ctx.config.alias[alias] = statement;
+      return ctx.config.vars.push(alias);
+    },
+    exec: function(str, ctx, schema, args) {
       var call;
 
       if (call = this[str]) {
-        return call.call(this, ctx, schema);
+        return call.call(this, ctx, schema, args);
       } else {
         return [];
       }
@@ -801,7 +894,7 @@
         }
       } else if (Object.prototype.toString.call(_hints) === '[object String]') {
         schema = new Schema(_schema);
-        if (data = this.exec(_hints, ctx, schema)) {
+        if (data = this.exec(_hints, ctx, schema, [])) {
           for (_j = 0, _len1 = data.length; _j < _len1; _j++) {
             i = data[_j];
             hints.push(i);
@@ -816,7 +909,7 @@
           }
         }
         schema = new Schema(_schema);
-        if (data = this.exec(_hints.call, ctx, schema)) {
+        if (data = this.exec(_hints.call, ctx, schema, _hints.args)) {
           for (_l = 0, _len3 = data.length; _l < _len3; _l++) {
             i = data[_l];
             hints.push(i);
