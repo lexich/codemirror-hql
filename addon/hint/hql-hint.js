@@ -121,6 +121,9 @@
     collectionPostFrom: ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"],
     collectionAgregate: ["count", "avg", "min", "max", "sum"],
     initialize: function() {},
+    _addHints: function(ctx, val) {
+      return ctx.hints = val;
+    },
     _parseToken: function(token, ctx, i, tokens) {
       var block, config, history;
 
@@ -146,63 +149,63 @@
         if (block.counter === 0) {
           block.canAddExtract = true;
           block.openBracket = false;
-          return ctx.hints = {
+          return this._addHints(ctx, {
             call: "get_hints_extract",
             add: ["distinct", "*"].concat(this.collectionAgregate)
-          };
+          });
         } else if (this.collectionAgregate.indexOf(token) >= 0) {
-          return ctx.hints = ["("];
+          return this._addHints(ctx, ["("]);
         } else if (token === "(") {
           block.openBracket = true;
-          return ctx.hints = {
+          return this._addHints(ctx, {
             call: "get_hints_extract",
             add: ["*"]
-          };
+          });
         } else if (block.openBracket) {
-          return ctx.hints = [")"];
+          return this._addHints(ctx, [")"]);
         } else if (token === ")") {
           block.openBracket = false;
-          return ctx.hints = [",", "from"];
+          return this._addHints(ctx, [",", "from"]);
         } else if (token === "distinct") {
-          return ctx.hints = [];
+          return this._addHints(ctx, []);
         } else if (token === ",") {
           if (block.canAddExtract = false) {
             block.canAddExtract = true;
-            return ctx.hints = {
+            return this._addHints(ctx, {
               call: "get_hints_extract",
               add: ["*"]
-            };
+            });
           } else {
             throw "Irregular select block";
           }
         } else if (block.canAddExtract) {
           config.extract.push(token);
           block.canAddExtract = false;
-          return ctx.hints = ["from", ","];
+          return this._addHints(ctx, ["from", ","]);
         }
       } else if (block.name === "from") {
         if (block.counter === 0) {
           block.canAddType = true;
           block.canAddVars = false;
-          return ctx.hints = "get_hints_types";
+          return this._addHints(ctx, "get_hints_types");
         } else if (block.canAddType) {
           config.types.push(token);
           block.canAddType = false;
           block.canAddVars = true;
-          return ctx.hints = ["as"].concat(this.collectionPostFrom);
+          return this._addHints(ctx, ["as"].concat(this.collectionPostFrom));
         } else if (block.canAddVars) {
           if (token === ",") {
             block.canAddType = true;
             block.canAddVars = false;
-            return ctx.hints = "get_hints_types";
+            return this._addHints(ctx, "get_hints_types");
           } else if (token === "as") {
             block.canAddVars = true;
             block.canAddType = false;
-            return ctx.hints = [];
+            return this._addHints(ctx, []);
           } else {
             config.vars.push(token);
             config.mappingVar[token] = config.types[config.types.length - 1];
-            return ctx.hints = [].concat(this.collectionPostFrom);
+            return this._addHints(ctx, [].concat(this.collectionPostFrom));
           }
         }
       } else if (block.name === "where") {
@@ -212,63 +215,63 @@
           block.canAddSecondVal = false;
           block.openBracket = false;
           if (ctx.config.vars.length > 0) {
-            return ctx.hints = {
+            return this._addHints(ctx, {
               call: "get_hints_vars",
               add: this.collectionExpr
-            };
+            });
           } else {
-            return ctx.hints = {
+            return this._addHints(ctx, {
               call: "get_hints_extract",
               add: this.collectionExpr
-            };
+            });
           }
         } else if (block.canAddFirstVal || block.canAddSecondVal) {
           if (this.collectionExpr.indexOf(token) >= 0) {
-            return ctx.hints = ["("];
+            return this._addHints(ctx, ["("]);
           } else if (token === "(") {
             block.openBracket = true;
-            return ctx.hints = {
+            return this._addHints(ctx, {
               call: "get_hints_vars_and_properties"
-            };
+            });
           } else if (token === ")") {
             block.openBracket = false;
             block.canAddFirstVal = false;
             if (block.canAddFirstVal) {
               block.canAddSigh = true;
-              return ctx.hints = [].concat(this.collectionSigh);
+              return this._addHints(ctx, [].concat(this.collectionSigh));
             } else if (block.canAddSecondVal) {
-              return ctx.hints = ["and", "or", "order"];
+              return this._addHints(ctx, ["and", "or", "order"]);
             }
           } else if (block.openBracket) {
-            return ctx.hints = [")"];
+            return this._addHints(ctx, [")"]);
           } else {
             if (block.canAddFirstVal) {
               block.canAddFirstVal = false;
               block.canAddSigh = true;
-              return ctx.hints = [].concat(this.collectionSigh);
+              return this._addHints(ctx, [].concat(this.collectionSigh));
             } else if (block.canAddSecondVal) {
               block.canAddSecondVal = false;
-              return ctx.hints = ["and", "or", "order"];
+              return this._addHints(ctx, ["and", "or", "order"]);
             }
           }
         } else if (block.canAddSigh) {
           block.canAddSigh = false;
           block.canAddSecondVal = true;
-          return ctx.hints = {
+          return this._addHints(ctx, {
             call: "get_hints_vars_and_properties",
             add: this.collectionExpr
-          };
+          });
         } else if (["and", "or"].indexOf(token) >= 0) {
           block.canAddFirstVal = true;
-          return ctx.hints = "get_hints_vars";
+          return this._addHints(ctx, "get_hints_vars");
         }
       } else if (block.name === "order") {
         if (block.counter === 0) {
           block.canAddVars = true;
-          return ctx.hints = ["by"];
+          return this._addHints(ctx, ["by"]);
         } else if (block.counter === 1) {
           if (token === "by") {
-            return ctx.hints = "get_hints_vars";
+            return this._addHints(ctx, "get_hints_vars");
           } else {
             throw "irregular order token";
           }
@@ -278,20 +281,20 @@
               throw "Irregular order block";
             }
             block.canAddVars = false;
-            return ctx.hints = [","];
+            return this._addHints(ctx, [","]);
           } else {
             block.canAddVars = true;
-            return ctx.hints = "get_hints_vars";
+            return this._addHints(ctx, "get_hints_vars");
           }
         }
       } else if (block.name === "fetch") {
         if (block.counter === 0) {
           block.canAddSubType = true;
           block.canAddAlias = false;
-          return ctx.hints = {
+          return this._addHints(ctx, {
             call: "get_hints_vars",
             add: ["all"]
-          };
+          });
         } else {
           if (block.canAddSubType) {
             block.canAddSubType = false;
@@ -300,64 +303,64 @@
             block.canAddAlias = true;
             this.addAlias(ctx, token, block.body[block.body.length - 2]);
           }
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "as", "group"];
+          return this._addHints(ctx, ["fetch", "inner", "left", "right", "join", "where", "order", "as", "group"]);
         }
       } else if (["inner", "left", "right"].indexOf(block.name) >= 0) {
         if (block.counter === 0) {
           if (token === "inner") {
-            return ctx.hints = ["join"];
+            return this._addHints(ctx, ["join"]);
           } else {
-            return ctx.hints = ["join", "outer"];
+            return this._addHints(ctx, ["join", "outer"]);
           }
         } else if (token === "outer") {
-          return ctx.hints = ["join"];
+          return this._addHints(ctx, ["join"]);
         } else if (token === "join") {
           block.canAddSubType = true;
           block.canAddAlias = false;
-          return ctx.hints = {
+          return this._addHints(ctx, {
             call: "get_hints_vars",
             add: ["fetch"]
-          };
+          });
         } else if (block.canAddSubType) {
           block.canAddSubType = false;
           block.canAddAlias = true;
-          return ctx.hints = ["as"].concat(this.collectionPostFrom);
+          return this._addHints(ctx, ["as"].concat(this.collectionPostFrom));
         } else if (block.canAddAlias) {
           block.canAddAlias = false;
           this.addAlias(ctx, token, block.body[block.body.length - 2]);
-          return ctx.hints = [].concat(this.collectionPostFrom);
+          return this._addHints(ctx, [].concat(this.collectionPostFrom));
         }
       } else if (block.name === "with") {
         if (block.counter === 0) {
           block.canAddFirstVar = true;
           block.canAddAlias = false;
-          return ctx.hints = "get_hints_vars";
+          return this._addHints(ctx, "get_hints_vars");
         } else if (block.canAddFirstVar) {
           block.canAddFirstVar = false;
           block.canAddAlias = true;
-          return ctx.hints = [];
+          return this._addHints(ctx, []);
         } else if (block.canAddAlias) {
           block.canAddAlias = false;
           this.addAlias(ctx, token, block.body[block.body.length - 2]);
-          return ctx.hints = [].concat(this.collectionPostFrom);
+          return this._addHints(ctx, [].concat(this.collectionPostFrom));
         }
       } else if (block.name === "group") {
         if (block.counter === 0) {
-          ctx.hints = ["by"];
+          this._addHints(ctx, ["by"]);
           return block.canAddVars = false;
         } else if (block.counter === 1) {
           if (token === "by") {
             block.canAddVars = true;
-            return ctx.hints = "get_hints_vars";
+            return this._addHints(ctx, "get_hints_vars");
           } else {
             throw "Irregular group block";
           }
         } else if (block.canAddVars) {
           block.canAddVars = false;
-          return ctx.hints = ["fetch", "inner", "left", "right", "join", "where", "order", "group", ","];
+          return this._addHints(ctx, ["fetch", "inner", "left", "right", "join", "where", "order", "group", ","]);
         } else if (token === ",") {
           block.canAddVars = true;
-          return ctx.hints = "get_hints_vars";
+          return this._addHints(ctx, "get_hints_vars");
         }
       }
     },
@@ -389,7 +392,7 @@
       if (_str.length > 0) {
         lastCh = _str[_str.length - 1];
         if (!([" ", ",", "=", ">", "<", ".", "("].indexOf(lastCh) >= 0)) {
-          ctx.hints = [];
+          this._addHints(ctx, []);
           return ctx;
         }
       }

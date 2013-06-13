@@ -92,6 +92,9 @@ _Gen::=
 
   initialize:->
 
+  _addHints:(ctx, val)->
+    ctx.hints = val
+
   _parseToken:(token, ctx, i, tokens)->
     block = ctx.block
     history = ctx.history
@@ -116,30 +119,30 @@ _Gen::=
       if block.counter is 0
         block.canAddExtract = true
         block.openBracket = false
-        ctx.hints = call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate)
+        @_addHints ctx, call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate)
       else if @collectionAgregate.indexOf(token) >= 0
-        ctx.hints = ["("]
+        @_addHints ctx, ["("]
       else if token is "("
         block.openBracket = true
-        ctx.hints = call:"get_hints_extract", add:["*"]
+        @_addHints ctx, call:"get_hints_extract", add:["*"]
       else if block.openBracket
-        ctx.hints = [")"]
+        @_addHints ctx, [")"]
       else if token is ")"
         block.openBracket = false
-        ctx.hints = [",","from"]
+        @_addHints ctx, [",","from"]
       else if token is "distinct"
-        ctx.hints = []
+        @_addHints ctx, []
       else if token is ","
         if block.canAddExtract = false
           block.canAddExtract = true
-          ctx.hints = call:"get_hints_extract", add:["*"]
+          @_addHints ctx, call:"get_hints_extract", add:["*"]
         else
           throw "Irregular select block"
 
       else if block.canAddExtract
         config.extract.push token
         block.canAddExtract = false
-        ctx.hints = ["from", ","]
+        @_addHints ctx, ["from", ","]
 
     ##############################################################################
     # from
@@ -148,26 +151,26 @@ _Gen::=
       if block.counter is 0
         block.canAddType = true
         block.canAddVars = false
-        ctx.hints = "get_hints_types"
+        @_addHints ctx, "get_hints_types"
 
       else if block.canAddType
         config.types.push token
         block.canAddType = false
         block.canAddVars = true
-        ctx.hints = ["as"].concat(@collectionPostFrom)
+        @_addHints ctx, ["as"].concat(@collectionPostFrom)
       else if block.canAddVars
         if token is ","
           block.canAddType = true
           block.canAddVars = false
-          ctx.hints = "get_hints_types"
+          @_addHints ctx, "get_hints_types"
         else if token is "as"
           block.canAddVars = true
           block.canAddType = false
-          ctx.hints = []
+          @_addHints ctx, []
         else
           config.vars.push token
           config.mappingVar[token] = config.types[config.types.length-1]
-          ctx.hints = [].concat(@collectionPostFrom)
+          @_addHints ctx, [].concat(@collectionPostFrom)
 
     ##############################################################################
     # where
@@ -180,43 +183,43 @@ _Gen::=
         block.canAddSecondVal = false
         block.openBracket = false
         if ctx.config.vars.length > 0
-          ctx.hints = call:"get_hints_vars", add:@collectionExpr
+          @_addHints ctx, call:"get_hints_vars", add:@collectionExpr
         else
-          ctx.hints = call:"get_hints_extract", add:@collectionExpr
+          @_addHints ctx, call:"get_hints_extract", add:@collectionExpr
       else if block.canAddFirstVal or block.canAddSecondVal
         if @collectionExpr.indexOf(token) >= 0
-          ctx.hints = ["("]
+          @_addHints ctx, ["("]
         else if token is "("
           block.openBracket = true
-          ctx.hints = call:"get_hints_vars_and_properties"
+          @_addHints ctx, call:"get_hints_vars_and_properties"
         else if token is ")"
           block.openBracket = false
           block.canAddFirstVal = false
           if block.canAddFirstVal
             block.canAddSigh = true
-            ctx.hints = [].concat(@collectionSigh)
+            @_addHints ctx, [].concat(@collectionSigh)
           else if block.canAddSecondVal
-            ctx.hints = ["and","or", "order"]
+            @_addHints ctx, ["and","or", "order"]
         else if block.openBracket
-          ctx.hints = [")"]
+          @_addHints ctx, [")"]
         else
           if block.canAddFirstVal
             block.canAddFirstVal = false
             block.canAddSigh = true
-            ctx.hints = [].concat(@collectionSigh)
+            @_addHints ctx, [].concat(@collectionSigh)
           else if block.canAddSecondVal
             block.canAddSecondVal = false
-            ctx.hints = ["and","or", "order"]
+            @_addHints ctx, ["and","or", "order"]
 
 
       else if block.canAddSigh
         block.canAddSigh = false
         block.canAddSecondVal = true
-        ctx.hints = call:"get_hints_vars_and_properties", add:@collectionExpr
+        @_addHints ctx, call:"get_hints_vars_and_properties", add:@collectionExpr
 
       else if ["and","or"].indexOf(token) >= 0
         block.canAddFirstVal = true
-        ctx.hints = "get_hints_vars"
+        @_addHints ctx, "get_hints_vars"
 
 
     ##############################################################################
@@ -225,21 +228,21 @@ _Gen::=
     else if block.name is "order"
       if block.counter is 0
         block.canAddVars = true
-        ctx.hints = ["by"]
+        @_addHints ctx, ["by"]
       else if block.counter is 1
         if token is "by"
-          ctx.hints = "get_hints_vars"
+          @_addHints ctx, "get_hints_vars"
         else
           throw "irregular order token"
       else
         if block.canAddVars
           throw "Irregular order block" if token is ","
           block.canAddVars = false
-          ctx.hints = [","]
+          @_addHints ctx, [","]
 
         else
           block.canAddVars = true
-          ctx.hints = "get_hints_vars"
+          @_addHints ctx, "get_hints_vars"
 
     ##############################################################################
     # fetch
@@ -248,7 +251,7 @@ _Gen::=
       if block.counter is 0
         block.canAddSubType = true
         block.canAddAlias = false
-        ctx.hints = call: "get_hints_vars", add:["all"]
+        @_addHints ctx, call: "get_hints_vars", add:["all"]
       else
         if block.canAddSubType
           block.canAddSubType = false
@@ -256,7 +259,7 @@ _Gen::=
         else if block.canAddAlias
           block.canAddAlias = true
           @addAlias ctx, token, block.body[block.body.length-2]
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "as", "group"]
+        @_addHints ctx, ["fetch","inner","left","right", "join", "where", "order", "as", "group"]
 
 
     ##############################################################################
@@ -266,29 +269,29 @@ _Gen::=
 
       if block.counter is 0
         if token is "inner"
-          ctx.hints = ["join"]
+          @_addHints ctx, ["join"]
         else
-          ctx.hints = ["join","outer"]
+          @_addHints ctx, ["join","outer"]
 
       else if token is "outer"
-        ctx.hints = ["join"]
+        @_addHints ctx, ["join"]
 
       else if token is "join"
         block.canAddSubType = true
         block.canAddAlias = false
-        ctx.hints = call: "get_hints_vars", add:["fetch"]
+        @_addHints ctx, call: "get_hints_vars", add:["fetch"]
 
       #else if token is "fetch"
-      #  ctx.hints = "get_hints_vars"
+      #  @_addHints ctx, "get_hints_vars"
 
       else if block.canAddSubType
         block.canAddSubType = false
         block.canAddAlias = true
-        ctx.hints = ["as"].concat(@collectionPostFrom)
+        @_addHints ctx, ["as"].concat(@collectionPostFrom)
       else if block.canAddAlias
         block.canAddAlias = false
         @addAlias ctx, token, block.body[block.body.length-2]
-        ctx.hints = [].concat(@collectionPostFrom)
+        @_addHints ctx, [].concat(@collectionPostFrom)
 
     ##############################################################################
     # with
@@ -297,35 +300,35 @@ _Gen::=
       if block.counter is 0
         block.canAddFirstVar = true
         block.canAddAlias = false
-        ctx.hints = "get_hints_vars"
+        @_addHints ctx, "get_hints_vars"
       else if block.canAddFirstVar
         block.canAddFirstVar = false
         block.canAddAlias = true
-        ctx.hints = []
+        @_addHints ctx, []
       else if block.canAddAlias
         block.canAddAlias = false
         @addAlias ctx, token, block.body[block.body.length-2]
-        ctx.hints = [].concat(@collectionPostFrom)
+        @_addHints ctx, [].concat(@collectionPostFrom)
 
     ##############################################################################
     # group
     ##############################################################################
     else if block.name is "group"
       if block.counter is 0
-        ctx.hints = ["by"]
+        @_addHints ctx, ["by"]
         block.canAddVars = false
       else if block.counter is 1
         if token is "by"
           block.canAddVars = true
-          ctx.hints = "get_hints_vars"
+          @_addHints ctx, "get_hints_vars"
         else
           throw "Irregular group block"
       else if block.canAddVars
         block.canAddVars = false
-        ctx.hints = ["fetch","inner","left","right", "join", "where", "order", "group", ","]
+        @_addHints ctx, ["fetch","inner","left","right", "join", "where", "order", "group", ","]
       else if token is ","
         block.canAddVars = true
-        ctx.hints = "get_hints_vars"
+        @_addHints ctx, "get_hints_vars"
 
   parse:(_str)->
     str = _str.replace(/[ ]+/g," ")
@@ -350,7 +353,7 @@ _Gen::=
     if _str.length > 0
       lastCh = _str[_str.length-1]
       unless [" ",",","=",">","<",".","("].indexOf(lastCh) >= 0
-        ctx.hints = []
+        @_addHints ctx, []
         return ctx
 
     for i in [0..tokens.length-1]
