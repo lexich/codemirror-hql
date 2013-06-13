@@ -87,7 +87,7 @@ test "Check select and from", ->
   str = "from Cat a "
   hints = _getHints str
   deepEqual hints, [
-    "fetch","inner","left","right", "join", "where", "order", "as"
+    "fetch","inner","left","right", "join", "where", "order"
   ].sort(), "HQL: `#{str}`"
 
 test "Check where", ->
@@ -97,7 +97,7 @@ test "Check where", ->
 
   str = "from Cat c where "
   hints = _getHints str
-  deepEqual hints, ["c"], "HQL: `#{str}`"
+  deepEqual hints, ["c","size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c"
   hints = _getHints str
@@ -134,39 +134,39 @@ test "Check where", ->
 
   str = "from Cat c where c.dog> "
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices" ].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c.dog="
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat where "
   hints = _getHints str
-  deepEqual hints, ["dog","fish"], "HQL: `#{str}`"
+  deepEqual hints, ["dog","fish","size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "select c from Cat where "
   hints = _getHints str
-  deepEqual hints, ["dog", "fish"], "HQL: `#{str}`"
+  deepEqual hints, ["dog", "fish", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c = "
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c.dog like "
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c.dog != "
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c.dog = "
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c.dog>"
   hints = _getHints str
-  deepEqual hints, ["c", ":one", ":two"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c", ":one", ":two", "size","maxelement","maxindex","minelement", "minindex","elements","indices"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c = 1 "
   hints = _getHints str
@@ -184,6 +184,12 @@ test "Check where", ->
   hints = _getHints str
   deepEqual hints, ["and","or","order"], "HQL: `#{str}`"
 
+  str = "from Cat where dog in elements(cats) "
+  hints = _getHints str
+  deepEqual hints, ["and", "or", "order"], "HQL: `#{str}`"
+
+
+#test "Check where 2", ->
 
 test "Check order", ->
   str = "from Cat c order"
@@ -316,24 +322,12 @@ test "check group by", ->
   hints = _getHints str
   deepEqual hints, ["c"], "HQL: `#{str}`"
 
+test "Fail", ->
+  equal(1,1)
+
+
 ->
   test "multiple class",->
     str = "from org."
     hints = _getHints str
     deepEqual hints, ["test"], "HQL: `#{str}`"
-
-
-
-test "Fail", ->
-  equal(1,1)
-  str = "from Cat where dog in elements(cats)"
-
-
-
-
-
-
-
-
-
-

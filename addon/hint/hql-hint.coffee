@@ -483,31 +483,60 @@ _Gen::=
         else
           config.vars.push token
           config.mappingVar[token] = config.types[config.types.length-1]
-          ctx.hists = ["fetch","inner","left","right", "join", "where", "order"]
+          ctx.hints = ["fetch","inner","left","right", "join", "where", "order"]
 
     ##############################################################################
     # where
     ##############################################################################
     else if block.name is "where"
+      collectionExpr = ["size","maxelement","maxindex","minelement", "minindex","elements","indices"]
+
       if block.counter is 0
         block.canAddFirstVal = true
         block.canAddSigh = false
         block.canAddSecondVal = false
+        block.openBracket = false
         if ctx.config.vars.length > 0
-          ctx.hints = "get_hints_vars"
+          ctx.hints = call:"get_hints_vars", add:collectionExpr
         else
-          ctx.hints = "get_hints_extract"
+          ctx.hints = call:"get_hints_extract", add:collectionExpr
       else if block.canAddFirstVal
-        block.canAddFirstVal = false
-        block.canAddSigh = true
-        ctx.hints = [">","<","=","!=",">=","<=", "exist","in", "like"]
+        if collectionExpr.indexOf(token) >= 0
+          ctx.hints = ["("]
+        else if token is "("
+          block.openBracket = true
+          ctx.hints = call:"get_hints_vars"
+        else if token is ")"
+          block.openBracket = false
+          block.canAddFirstVal = false
+          block.canAddSigh = true
+          ctx.hints = [">","<","=","!=",">=","<=", "exist","in", "like"]
+        else if block.openBracket
+          ctx.hints = [")"]
+        else
+          block.canAddFirstVal = false
+          block.canAddSigh = true
+          ctx.hints = [">","<","=","!=",">=","<=", "exist","in", "like"]
       else if block.canAddSigh
         block.canAddSigh = false
         block.canAddSecondVal = true
-        ctx.hints = "get_hints_vars_and_properties"
+        ctx.hints = call:"get_hints_vars_and_properties", add:collectionExpr
       else if block.canAddSecondVal
-        block.canAddSecondVal = false
-        ctx.hints = ["and","or", "order"]
+        if collectionExpr.indexOf(token) >= 0
+          ctx.hints = ["("]
+        else if token is "("
+          block.openBracket = true
+          ctx.hints = call:"get_hints_vars"
+        else if token is ")"
+          block.openBracket = false
+          block.canAddSecondVal = false
+          ctx.hints = ["and","or", "order"]
+        else if block.openBracket
+          ctx.hints = [")"]
+        else
+          block.canAddSecondVal = false
+          ctx.hints = ["and","or", "order"]
+
       else if ["and","or"].indexOf(token) >= 0
         block.canAddFirstVal = true
         ctx.hints = "get_hints_vars"
@@ -623,7 +652,7 @@ _Gen::=
 
   parse:(_str)->
     str = _str.replace(/[ ]+/g," ")
-    str = str.replace(/(,|>=|<=|>|<|!=|=)/g," $1 ")
+    str = str.replace(/(,|>=|<=|>|<|!=|=|\(|\))/g," $1 ")
     tokens = str.split(" ")
     ctx =
       str:_str
@@ -643,7 +672,7 @@ _Gen::=
 
     if _str.length > 0
       lastCh = _str[_str.length-1]
-      unless [" ",",","=",">","<","."].indexOf(lastCh) >= 0
+      unless [" ",",","=",">","<",".","("].indexOf(lastCh) >= 0
         ctx.hints = []
         return ctx
 

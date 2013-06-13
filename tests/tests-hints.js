@@ -88,7 +88,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat a ";
     hints = _getHints(str);
-    return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "as"].sort(), "HQL: `" + str + "`");
+    return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order"].sort(), "HQL: `" + str + "`");
   });
 
   test("Check where", function() {
@@ -99,7 +99,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat c where ";
     hints = _getHints(str);
-    deepEqual(hints, ["c"], "HQL: `" + str + "`");
+    deepEqual(hints, ["c", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -126,31 +126,31 @@
     deepEqual(hints, ["!=", "<", "<=", "=", ">", ">=", "exist", "in", "like"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog> ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog=";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat where ";
     hints = _getHints(str);
-    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    deepEqual(hints, ["dog", "fish", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "select c from Cat where ";
     hints = _getHints(str);
-    deepEqual(hints, ["dog", "fish"], "HQL: `" + str + "`");
+    deepEqual(hints, ["dog", "fish", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c = ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog like ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog != ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog = ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c.dog>";
     hints = _getHints(str);
-    deepEqual(hints, ["c", ":one", ":two"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c = 1 ";
     hints = _getHints(str);
     deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
@@ -161,6 +161,9 @@
     hints = _getHints(str);
     deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
     str = "from Cat c where c in :one ";
+    hints = _getHints(str);
+    deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
+    str = "from Cat where dog in elements(cats) ";
     hints = _getHints(str);
     return deepEqual(hints, ["and", "or", "order"], "HQL: `" + str + "`");
   });
@@ -285,6 +288,10 @@
     return deepEqual(hints, ["c"], "HQL: `" + str + "`");
   });
 
+  test("Fail", function() {
+    return equal(1, 1);
+  });
+
   (function() {
     return test("multiple class", function() {
       var hints, str;
@@ -293,13 +300,6 @@
       hints = _getHints(str);
       return deepEqual(hints, ["test"], "HQL: `" + str + "`");
     });
-  });
-
-  test("Fail", function() {
-    var str;
-
-    equal(1, 1);
-    return str = "from Cat where dog in elements(cats)";
   });
 
 }).call(this);
