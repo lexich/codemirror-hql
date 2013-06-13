@@ -476,8 +476,8 @@ CodeMirror.hqlHint = (cm, opt)->
   hints = gen.getHints text, options, opt.schemaInfo
   {
     list: hints
-    from: cur
-    to: cur
+    from: CodeMirror.Pos cur.line, cur.ch
+    to: CodeMirror.Pos cur.line, cur.ch
   }
 
 
