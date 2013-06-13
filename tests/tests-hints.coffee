@@ -186,7 +186,11 @@ test "Check where", ->
 
   str = "from Cat where dog in elements(cats) "
   hints = _getHints str
-  deepEqual hints, ["and", "or", "order"], "HQL: `#{str}`"
+  deepEqual hints, ["and", "or", "order"].sort(), "HQL: `#{str}`"
+
+  str = "from Cat where dog in elements("
+  hints = _getHints str
+  deepEqual hints, ["fish","dog",":one",":two"].sort(), "HQL: `#{str}`"
 
 
 #test "Check where 2", ->

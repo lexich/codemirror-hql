@@ -505,7 +505,7 @@ _Gen::=
           ctx.hints = ["("]
         else if token is "("
           block.openBracket = true
-          ctx.hints = call:"get_hints_vars"
+          ctx.hints = call:"get_hints_vars_and_properties"
         else if token is ")"
           block.openBracket = false
           block.canAddFirstVal = false
@@ -526,7 +526,7 @@ _Gen::=
           ctx.hints = ["("]
         else if token is "("
           block.openBracket = true
-          ctx.hints = call:"get_hints_vars"
+          ctx.hints = call:"get_hints_vars_and_properties"
         else if token is ")"
           block.openBracket = false
           block.canAddSecondVal = false
@@ -709,7 +709,15 @@ _Gen::=
     schema.getTypes()
 
   get_hints_vars:(ctx, schema)->
-    ctx.config.vars
+    result = []
+    if ctx.config.vars.length > 0
+      result = ctx.config.vars
+    else
+      for type in ctx.config.types
+        variables = schema.getVariablesByType(type)
+        for item in variables
+          result.push item
+    result
 
   get_hints_vars_and_properties:(ctx, schema)->
     result = []

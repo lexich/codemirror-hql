@@ -647,7 +647,7 @@
           } else if (token === "(") {
             block.openBracket = true;
             return ctx.hints = {
-              call: "get_hints_vars"
+              call: "get_hints_vars_and_properties"
             };
           } else if (token === ")") {
             block.openBracket = false;
@@ -674,7 +674,7 @@
           } else if (token === "(") {
             block.openBracket = true;
             return ctx.hints = {
-              call: "get_hints_vars"
+              call: "get_hints_vars_and_properties"
             };
           } else if (token === ")") {
             block.openBracket = false;
@@ -867,7 +867,23 @@
       return schema.getTypes();
     },
     get_hints_vars: function(ctx, schema) {
-      return ctx.config.vars;
+      var item, result, type, variables, _i, _j, _len, _len1, _ref;
+
+      result = [];
+      if (ctx.config.vars.length > 0) {
+        result = ctx.config.vars;
+      } else {
+        _ref = ctx.config.types;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          type = _ref[_i];
+          variables = schema.getVariablesByType(type);
+          for (_j = 0, _len1 = variables.length; _j < _len1; _j++) {
+            item = variables[_j];
+            result.push(item);
+          }
+        }
+      }
+      return result;
     },
     get_hints_vars_and_properties: function(ctx, schema) {
       var i, result, _i, _j, _len, _len1, _ref, _ref1;
