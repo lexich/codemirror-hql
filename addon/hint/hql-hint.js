@@ -169,15 +169,11 @@
         } else if (token === "distinct") {
           return this._addHints(ctx, []);
         } else if (token === ",") {
-          if (block.canAddExtract = false) {
-            block.canAddExtract = true;
-            return this._addHints(ctx, {
-              call: "get_hints_extract",
-              add: ["*"]
-            });
-          } else {
-            throw "Irregular select block";
-          }
+          block.canAddExtract = true;
+          return this._addHints(ctx, {
+            call: "get_hints_extract",
+            add: ["*"].concat(this.collectionAgregate)
+          });
         } else if (block.canAddExtract) {
           config.extract.push(token);
           block.canAddExtract = false;
@@ -303,7 +299,7 @@
             block.canAddAlias = true;
             this.addAlias(ctx, token, block.body[block.body.length - 2]);
           }
-          return this._addHints(ctx, ["fetch", "inner", "left", "right", "join", "where", "order", "as", "group"]);
+          return this._addHints(ctx, ["as"].concat(this.collectionPostFrom));
         }
       } else if (["inner", "left", "right"].indexOf(block.name) >= 0) {
         if (block.counter === 0) {
@@ -357,7 +353,7 @@
           }
         } else if (block.canAddVars) {
           block.canAddVars = false;
-          return this._addHints(ctx, ["fetch", "inner", "left", "right", "join", "where", "order", "group", ","]);
+          return this._addHints(ctx, [","].concat(this.collectionPostFrom));
         } else if (token === ",") {
           block.canAddVars = true;
           return this._addHints(ctx, "get_hints_vars");
@@ -365,7 +361,7 @@
       }
     },
     parse: function(_str) {
-      var ctx, filter, hint, hints, i, index, lastCh, str, token, tokens, _i, _j, _k, _len, _ref, _ref1, _ref2;
+      var ctx, filter, hint, hints, i, index, lastCh, str, token, tokens, _i, _j, _k, _len, _len1, _ref, _ref1;
 
       str = _str.replace(/[ ]+/g, " ");
       str = str.replace(/(,|>=|<=|>|<|!=|=|\(|\))/g, " $1 ");
@@ -392,7 +388,7 @@
       filter = null;
       if (_str.length > 0) {
         lastCh = _str[_str.length - 1];
-        if (!([" ", ",", "=", ">", "<", ".", "(", "*"].indexOf(lastCh) >= 0)) {
+        if (!([" ", ",", "=", ">", "<", ".", "("].indexOf(lastCh) >= 0)) {
           for (index = _i = _ref = tokens.length - 1; _ref <= 0 ? _i <= 0 : _i >= 0; index = _ref <= 0 ? ++_i : --_i) {
             filter = tokens[index].trim();
             if (filter !== "") {
@@ -405,8 +401,9 @@
           }
         }
       }
-      for (i = _j = 0, _ref1 = tokens.length - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-        token = tokens[i].trim();
+      for (i = _j = 0, _len = tokens.length; _j < _len; i = ++_j) {
+        token = tokens[i];
+        token = token.trim();
         if (token === "") {
           continue;
         }
@@ -414,10 +411,10 @@
       }
       if (filter != null) {
         hints = [];
-        _ref2 = ctx.hints;
-        for (_k = 0, _len = _ref2.length; _k < _len; _k++) {
-          hint = _ref2[_k];
-          if (hint.indexOf(filter) === 0 || [",", "(", ")"].indexOf(hint) >= 0) {
+        _ref1 = ctx.hints;
+        for (_k = 0, _len1 = _ref1.length; _k < _len1; _k++) {
+          hint = _ref1[_k];
+          if ((hint !== filter && hint.indexOf(filter) === 0) || [",", "(", ")"].indexOf(hint) >= 0) {
             hints.push(hint);
           }
         }

@@ -133,11 +133,8 @@ _Gen::=
       else if token is "distinct"
         @_addHints ctx, []
       else if token is ","
-        if block.canAddExtract = false
-          block.canAddExtract = true
-          @_addHints ctx, call:"get_hints_extract", add:["*"]
-        else
-          throw "Irregular select block"
+        block.canAddExtract = true
+        @_addHints ctx, call:"get_hints_extract", add:["*"].concat(@collectionAgregate)
 
       else if block.canAddExtract
         config.extract.push token
@@ -259,7 +256,7 @@ _Gen::=
         else if block.canAddAlias
           block.canAddAlias = true
           @addAlias ctx, token, block.body[block.body.length-2]
-        @_addHints ctx, ["fetch","inner","left","right", "join", "where", "order", "as", "group"]
+        @_addHints ctx, ["as"].concat(@collectionPostFrom)
 
 
     ##############################################################################
@@ -280,9 +277,6 @@ _Gen::=
         block.canAddSubType = true
         block.canAddAlias = false
         @_addHints ctx, call: "get_hints_vars", add:["fetch"]
-
-      #else if token is "fetch"
-      #  @_addHints ctx, "get_hints_vars"
 
       else if block.canAddSubType
         block.canAddSubType = false
@@ -325,7 +319,7 @@ _Gen::=
           throw "Irregular group block"
       else if block.canAddVars
         block.canAddVars = false
-        @_addHints ctx, ["fetch","inner","left","right", "join", "where", "order", "group", ","]
+        @_addHints ctx, [","].concat(@collectionPostFrom)
       else if token is ","
         block.canAddVars = true
         @_addHints ctx, "get_hints_vars"
@@ -353,23 +347,25 @@ _Gen::=
     filter = null
     if _str.length > 0
       lastCh = _str[_str.length-1]
-      unless [" ",",","=",">","<",".","(","*"].indexOf(lastCh) >= 0
+      unless [" ",",","=",">","<",".","("].indexOf(lastCh) >= 0
         for index in [tokens.length-1..0]
           filter = tokens[index].trim()
           if filter != "" then break
         if [].concat(@collectionAgregate, @collectionExpr).indexOf(filter) >= 0
           ctx.hints = ["("]
           return ctx
+        #else
+        #  tokens = tokens.splice(0,index)
 
-    for i in [0..tokens.length-1]
-      token = tokens[i].trim()
+    for token, i in tokens
+      token = token.trim()
       continue if token is ""
       @_parseToken(token, ctx, i, tokens)
 
     if filter?
       hints = []
       for hint in ctx.hints
-        if hint.indexOf(filter) == 0 or [",","(",")"].indexOf(hint) >= 0
+        if (hint != filter and hint.indexOf(filter) == 0 ) or [",","(",")"].indexOf(hint) >= 0
           hints.push hint
       ctx.hints = hints
 
