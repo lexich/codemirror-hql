@@ -65,6 +65,9 @@
     str = "select count ";
     hints = _getHints(str);
     deepEqual(hints, ["("].sort(), "HQL: `" + str + "`");
+    str = "select count";
+    hints = _getHints(str);
+    deepEqual(hints, ["("].sort(), "HQL: `" + str + "`");
     str = "select count(";
     hints = _getHints(str);
     return deepEqual(hints, ["*"].sort(), "HQL: `" + str + "`");

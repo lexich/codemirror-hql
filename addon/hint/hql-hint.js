@@ -365,7 +365,7 @@
       }
     },
     parse: function(_str) {
-      var ctx, i, lastCh, str, token, tokens, _i, _ref;
+      var ctx, filter, hint, hints, i, lastCh, str, token, tokens, _i, _j, _len, _ref, _ref1;
 
       str = _str.replace(/[ ]+/g, " ");
       str = str.replace(/(,|>=|<=|>|<|!=|=|\(|\))/g, " $1 ");
@@ -389,11 +389,15 @@
         },
         hints: ["select", "from"]
       };
+      filter = null;
       if (_str.length > 0) {
         lastCh = _str[_str.length - 1];
         if (!([" ", ",", "=", ">", "<", ".", "("].indexOf(lastCh) >= 0)) {
-          this._addHints(ctx, []);
-          return ctx;
+          filter = tokens[tokens.length - 1].trim();
+          if ([].concat(this.collectionAgregate, this.collectionExpr).indexOf(filter) >= 0) {
+            ctx.hints = ["("];
+            return ctx;
+          }
         }
       }
       for (i = _i = 0, _ref = tokens.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
@@ -402,6 +406,17 @@
           continue;
         }
         this._parseToken(token, ctx, i, tokens);
+      }
+      if (filter != null) {
+        hints = [];
+        _ref1 = ctx.hints;
+        for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
+          hint = _ref1[_j];
+          if (hint.indexOf(filter) === 0) {
+            hints.push(hint);
+          }
+        }
+        ctx.hints = hints;
       }
       return ctx;
     },

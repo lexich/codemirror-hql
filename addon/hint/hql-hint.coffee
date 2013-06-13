@@ -89,7 +89,7 @@ _Gen::=
   collectionSigh: [">","<","=","!=",">=","<=", "exist","in", "like"]
   collectionPostFrom: ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
   collectionAgregate: ["count","avg", "min", "max", "sum"]
-
+  
   initialize:->
 
   _addHints:(ctx, val)->
@@ -350,16 +350,26 @@ _Gen::=
         alias:{}
       hints:["select","from"]
 
+    filter = null
     if _str.length > 0
       lastCh = _str[_str.length-1]
       unless [" ",",","=",">","<",".","("].indexOf(lastCh) >= 0
-        @_addHints ctx, []
-        return ctx
+        filter = tokens[tokens.length-1].trim()
+        if [].concat(@collectionAgregate, @collectionExpr).indexOf(filter) >= 0
+          ctx.hints = ["("]
+          return ctx
 
     for i in [0..tokens.length-1]
       token = tokens[i].trim()
       continue if token is ""
       @_parseToken(token, ctx, i, tokens)
+
+    if filter?
+      hints = []
+      for hint in ctx.hints
+        if hint.indexOf(filter) == 0
+          hints.push hint
+      ctx.hints = hints
 
     ctx
 
