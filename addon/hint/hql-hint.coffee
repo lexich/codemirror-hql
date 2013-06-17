@@ -90,7 +90,8 @@ _Gen::=
   collectionPostFrom: ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
   collectionAgregate: ["count","avg", "min", "max", "sum"]
   collectionQualifiedPath:["value","index","key","entry"]
-
+  collectionFunctions:['concat', 'substring', 'upper', 'lower', 'trim', 'length', 'locate', 'abs', 'mod', 'sqrt', 'current_date', 'current_time', 'current_timestamp']
+  collectionType:['bit_length', 'cast', 'extract', 'second', 'minute', 'hour', 'day', 'month', 'year', 'str']
   initialize:->
 
   _addHints:(ctx, val)->
@@ -120,7 +121,7 @@ _Gen::=
       if block.counter is 0
         block.canAddExtract = true
         block.openBracket = false
-        @_addHints ctx, call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate,@collectionQualifiedPath)
+        @_addHints ctx, call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate,@collectionQualifiedPath, @collectionFunctions, @collectionType)
       else if @collectionAgregate.indexOf(token) >= 0
         @_addHints ctx, ["("]
       else if token is "("
@@ -135,7 +136,7 @@ _Gen::=
         @_addHints ctx, []
       else if token is ","
         block.canAddExtract = true
-        @_addHints ctx, call:"get_hints_extract", add:["*"].concat(@collectionAgregate, @collectionQualifiedPath)
+        @_addHints ctx, call:"get_hints_extract", add:["*"].concat(@collectionAgregate, @collectionQualifiedPath, @collectionFunctions, @collectionType)
 
       else if block.canAddExtract
         config.extract.push token
@@ -181,9 +182,9 @@ _Gen::=
         block.canAddSecondVal = false
         block.openBracket = false
         if ctx.config.vars.length > 0
-          @_addHints ctx, call:"get_hints_vars", add:[].concat(@collectionExpr,@collectionQualifiedPath)
+          @_addHints ctx, call:"get_hints_vars", add:[].concat(@collectionExpr,@collectionQualifiedPath, @collectionFunctions, @collectionType)
         else
-          @_addHints ctx, call:"get_hints_extract", add: [].concat(@collectionExpr, @collectionQualifiedPath)
+          @_addHints ctx, call:"get_hints_extract", add: [].concat(@collectionExpr, @collectionQualifiedPath, @collectionFunctions, @collectionType)
       else if block.canAddFirstVal or block.canAddSecondVal
         if @collectionExpr.indexOf(token) >= 0
           @_addHints ctx, ["("]

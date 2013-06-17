@@ -121,6 +121,8 @@
     collectionPostFrom: ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"],
     collectionAgregate: ["count", "avg", "min", "max", "sum"],
     collectionQualifiedPath: ["value", "index", "key", "entry"],
+    collectionFunctions: ['concat', 'substring', 'upper', 'lower', 'trim', 'length', 'locate', 'abs', 'mod', 'sqrt', 'current_date', 'current_time', 'current_timestamp'],
+    collectionType: ['bit_length', 'cast', 'extract', 'second', 'minute', 'hour', 'day', 'month', 'year', 'str'],
     initialize: function() {},
     _addHints: function(ctx, val) {
       return ctx.hints = val;
@@ -152,7 +154,7 @@
           block.openBracket = false;
           return this._addHints(ctx, {
             call: "get_hints_extract",
-            add: ["distinct", "*"].concat(this.collectionAgregate, this.collectionQualifiedPath)
+            add: ["distinct", "*"].concat(this.collectionAgregate, this.collectionQualifiedPath, this.collectionFunctions, this.collectionType)
           });
         } else if (this.collectionAgregate.indexOf(token) >= 0) {
           return this._addHints(ctx, ["("]);
@@ -173,7 +175,7 @@
           block.canAddExtract = true;
           return this._addHints(ctx, {
             call: "get_hints_extract",
-            add: ["*"].concat(this.collectionAgregate, this.collectionQualifiedPath)
+            add: ["*"].concat(this.collectionAgregate, this.collectionQualifiedPath, this.collectionFunctions, this.collectionType)
           });
         } else if (block.canAddExtract) {
           config.extract.push(token);
@@ -214,12 +216,12 @@
           if (ctx.config.vars.length > 0) {
             return this._addHints(ctx, {
               call: "get_hints_vars",
-              add: [].concat(this.collectionExpr, this.collectionQualifiedPath)
+              add: [].concat(this.collectionExpr, this.collectionQualifiedPath, this.collectionFunctions, this.collectionType)
             });
           } else {
             return this._addHints(ctx, {
               call: "get_hints_extract",
-              add: [].concat(this.collectionExpr, this.collectionQualifiedPath)
+              add: [].concat(this.collectionExpr, this.collectionQualifiedPath, this.collectionFunctions, this.collectionType)
             });
           }
         } else if (block.canAddFirstVal || block.canAddSecondVal) {

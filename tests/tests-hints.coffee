@@ -24,6 +24,14 @@ window.schema =
 
 window.schemaArr = ["Cat","Dog","Fish","org.java.Test"].sort()
 
+collectionExpr = ["size","maxelement","maxindex","minelement", "minindex","elements","indices"]
+collectionSigh = [">","<","=","!=",">=","<=", "exist","in", "like"]
+collectionPostFrom = ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
+collectionAgregate = ["count","avg", "min", "max", "sum"]
+collectionQualifiedPath = ["value","index","key","entry"]
+collectionFunctions = ['concat', 'substring', 'upper', 'lower', 'trim', 'length', 'locate', 'abs', 'mod', 'sqrt', 'current_date', 'current_time', 'current_timestamp']
+collectionType = ['bit_length', 'cast', 'extract', 'second', 'minute', 'hour', 'day', 'month', 'year', 'str']
+
 _getHints = (str)->
   opt = gen.parse(str)
   gen.getHints str, opt, schema
@@ -40,11 +48,11 @@ test "Check select", ->
 
   str = "select "
   hints = _getHints str
-  deepEqual hints, [ "*", "avg", "count", "distinct", "max", "min", "sum", "value","index","key","entry" ].sort(), "HQL: `#{str}`"
+  deepEqual hints, [ "*", "avg", "count", "distinct", "max", "min", "sum", "value","index","key","entry" ].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
 
   str = "select a"
   hints = _getHints str
-  deepEqual hints, ["avg"], "HQL: `#{str}`"
+  deepEqual hints, ["avg","abs"].sort(), "HQL: `#{str}`"
 
   str = "select a "
   hints = _getHints str
@@ -76,7 +84,7 @@ test "Check select", ->
 
   str = "select avg(*), "
   hints = _getHints str
-  deepEqual hints, ["*", "avg", "count", "max", "min", "sum", "value","index","key","entry"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["*", "avg", "count", "max", "min", "sum", "value","index","key","entry"].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
 
   str = "select *"
   hints = _getHints str
@@ -84,7 +92,7 @@ test "Check select", ->
 
   str = "select *, a"
   hints = _getHints str
-  deepEqual hints, ["avg"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["avg","abs"].sort(), "HQL: `#{str}`"
 
 test "Check select from", ->
   str = "select a from"
@@ -134,11 +142,11 @@ test "Check where", ->
 
   str = "from Cat c where "
   hints = _getHints str
-  deepEqual hints, ["c","size","maxelement","maxindex","minelement", "minindex","elements","indices", "value","index","key","entry"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["c","size","maxelement","maxindex","minelement", "minindex","elements","indices", "value","index","key","entry"].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c"
   hints = _getHints str
-  deepEqual hints, [], "HQL: `#{str}`"
+  deepEqual hints, ["cast", "concat", "current_date", "current_time", "current_timestamp"].sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c "
   hints = _getHints str
@@ -179,11 +187,11 @@ test "Check where", ->
 
   str = "from Cat where "
   hints = _getHints str
-  deepEqual hints, ["dog","fish","size","maxelement","maxindex","minelement", "minindex","elements","indices", "value","index","key","entry"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["dog","fish","size","maxelement","maxindex","minelement", "minindex","elements","indices", "value","index","key","entry"].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
 
   str = "select c from Cat where "
   hints = _getHints str
-  deepEqual hints, ["dog", "fish", "size","maxelement","maxindex","minelement", "minindex","elements","indices", "value","index","key","entry"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["dog", "fish", "size","maxelement","maxindex","minelement", "minindex","elements","indices", "value","index","key","entry"].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
 
   str = "from Cat c where c = "
   hints = _getHints str
