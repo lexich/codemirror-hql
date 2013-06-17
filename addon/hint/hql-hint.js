@@ -120,6 +120,7 @@
     collectionSigh: [">", "<", "=", "!=", ">=", "<=", "exist", "in", "like"],
     collectionPostFrom: ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"],
     collectionAgregate: ["count", "avg", "min", "max", "sum"],
+    collectionQualifiedPath: ["value", "index", "key", "entry"],
     initialize: function() {},
     _addHints: function(ctx, val) {
       return ctx.hints = val;
@@ -151,7 +152,7 @@
           block.openBracket = false;
           return this._addHints(ctx, {
             call: "get_hints_extract",
-            add: ["distinct", "*"].concat(this.collectionAgregate)
+            add: ["distinct", "*"].concat(this.collectionAgregate, this.collectionQualifiedPath)
           });
         } else if (this.collectionAgregate.indexOf(token) >= 0) {
           return this._addHints(ctx, ["("]);
@@ -172,7 +173,7 @@
           block.canAddExtract = true;
           return this._addHints(ctx, {
             call: "get_hints_extract",
-            add: ["*"].concat(this.collectionAgregate)
+            add: ["*"].concat(this.collectionAgregate, this.collectionQualifiedPath)
           });
         } else if (block.canAddExtract) {
           config.extract.push(token);
@@ -213,12 +214,12 @@
           if (ctx.config.vars.length > 0) {
             return this._addHints(ctx, {
               call: "get_hints_vars",
-              add: this.collectionExpr
+              add: [].concat(this.collectionExpr, this.collectionQualifiedPath)
             });
           } else {
             return this._addHints(ctx, {
               call: "get_hints_extract",
-              add: this.collectionExpr
+              add: [].concat(this.collectionExpr, this.collectionQualifiedPath)
             });
           }
         } else if (block.canAddFirstVal || block.canAddSecondVal) {

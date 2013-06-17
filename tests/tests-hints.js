@@ -55,7 +55,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "select ";
     hints = _getHints(str);
-    deepEqual(hints, ["*", "avg", "count", "distinct", "max", "min", "sum"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["*", "avg", "count", "distinct", "max", "min", "sum", "value", "index", "key", "entry"].sort(), "HQL: `" + str + "`");
     str = "select a";
     hints = _getHints(str);
     deepEqual(hints, ["avg"], "HQL: `" + str + "`");
@@ -82,7 +82,7 @@
     deepEqual(hints, [","].sort(), "HQL: `" + str + "`");
     str = "select avg(*), ";
     hints = _getHints(str);
-    deepEqual(hints, ["*", "avg", "count", "max", "min", "sum"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["*", "avg", "count", "max", "min", "sum", "value", "index", "key", "entry"].sort(), "HQL: `" + str + "`");
     str = "select *";
     hints = _getHints(str);
     deepEqual(hints, [","].sort(), "HQL: `" + str + "`");
@@ -131,7 +131,7 @@
     deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat c where ";
     hints = _getHints(str);
-    deepEqual(hints, ["c", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["c", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices", "value", "index", "key", "entry"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c";
     hints = _getHints(str);
     deepEqual(hints, [], "HQL: `" + str + "`");
@@ -164,10 +164,10 @@
     deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
     str = "from Cat where ";
     hints = _getHints(str);
-    deepEqual(hints, ["dog", "fish", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["dog", "fish", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices", "value", "index", "key", "entry"].sort(), "HQL: `" + str + "`");
     str = "select c from Cat where ";
     hints = _getHints(str);
-    deepEqual(hints, ["dog", "fish", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, ["dog", "fish", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices", "value", "index", "key", "entry"].sort(), "HQL: `" + str + "`");
     str = "from Cat c where c = ";
     hints = _getHints(str);
     deepEqual(hints, ["c", ":one", ":two", "size", "maxelement", "maxindex", "minelement", "minindex", "elements", "indices"].sort(), "HQL: `" + str + "`");

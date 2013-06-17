@@ -89,6 +89,7 @@ _Gen::=
   collectionSigh: [">","<","=","!=",">=","<=", "exist","in", "like"]
   collectionPostFrom: ["fetch","inner","left","right", "join", "where", "order", "group", "with"]
   collectionAgregate: ["count","avg", "min", "max", "sum"]
+  collectionQualifiedPath:["value","index","key","entry"]
 
   initialize:->
 
@@ -119,7 +120,7 @@ _Gen::=
       if block.counter is 0
         block.canAddExtract = true
         block.openBracket = false
-        @_addHints ctx, call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate)
+        @_addHints ctx, call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate,@collectionQualifiedPath)
       else if @collectionAgregate.indexOf(token) >= 0
         @_addHints ctx, ["("]
       else if token is "("
@@ -134,7 +135,7 @@ _Gen::=
         @_addHints ctx, []
       else if token is ","
         block.canAddExtract = true
-        @_addHints ctx, call:"get_hints_extract", add:["*"].concat(@collectionAgregate)
+        @_addHints ctx, call:"get_hints_extract", add:["*"].concat(@collectionAgregate, @collectionQualifiedPath)
 
       else if block.canAddExtract
         config.extract.push token
@@ -180,9 +181,9 @@ _Gen::=
         block.canAddSecondVal = false
         block.openBracket = false
         if ctx.config.vars.length > 0
-          @_addHints ctx, call:"get_hints_vars", add:@collectionExpr
+          @_addHints ctx, call:"get_hints_vars", add:[].concat(@collectionExpr,@collectionQualifiedPath)
         else
-          @_addHints ctx, call:"get_hints_extract", add:@collectionExpr
+          @_addHints ctx, call:"get_hints_extract", add: [].concat(@collectionExpr, @collectionQualifiedPath)
       else if block.canAddFirstVal or block.canAddSecondVal
         if @collectionExpr.indexOf(token) >= 0
           @_addHints ctx, ["("]
@@ -376,13 +377,6 @@ _Gen::=
       continue if token is ""
       @_parseToken(token, ctx, i, tokens)
     ctx.filter = filter
-    #if filter?
-    #  hints = []
-    #  for hint in ctx.hints
-    #    if (hint != filter and hint.indexOf(filter) == 0 ) or [",","(",")"].indexOf(hint) >= 0
-    #      hints.push hint
-    #  ctx.hints = hints
-
     ctx
 
   get_hints_autocomplete:(ctx, schema, args)->
