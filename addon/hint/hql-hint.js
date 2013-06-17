@@ -361,7 +361,7 @@
       }
     },
     parse: function(_str) {
-      var ctx, filter, hint, hints, i, index, lastCh, str, token, tokens, _i, _j, _k, _len, _len1, _ref, _ref1;
+      var ctx, filter, i, index, lastCh, str, token, tokens, _i, _j, _len, _ref;
 
       str = _str.replace(/[ ]+/g, " ");
       str = str.replace(/(,|>=|<=|>|<|!=|=|\(|\))/g, " $1 ");
@@ -388,6 +388,22 @@
       filter = null;
       if (_str.length > 0) {
         lastCh = _str[_str.length - 1];
+        if (lastCh === ")") {
+          ctx.hints = [","];
+          return ctx;
+        }
+        if (lastCh === "*") {
+          if (tokens.length >= 2) {
+            if (tokens[tokens.length - 1] === "*") {
+              if (tokens[tokens.length - 2] === "(") {
+                ctx.hints = [")"];
+              } else {
+                ctx.hints = [","];
+              }
+              return ctx;
+            }
+          }
+        }
         if (!([" ", ",", "=", ">", "<", ".", "("].indexOf(lastCh) >= 0)) {
           for (index = _i = _ref = tokens.length - 1; _ref <= 0 ? _i <= 0 : _i >= 0; index = _ref <= 0 ? ++_i : --_i) {
             filter = tokens[index].trim();
@@ -399,6 +415,12 @@
             ctx.hints = ["("];
             return ctx;
           }
+          if (this.BLOCKS.indexOf(filter) >= 0) {
+            ctx.hints = [];
+            return ctx;
+          } else {
+            tokens = tokens.splice(0, index);
+          }
         }
       }
       for (i = _j = 0, _len = tokens.length; _j < _len; i = ++_j) {
@@ -409,17 +431,7 @@
         }
         this._parseToken(token, ctx, i, tokens);
       }
-      if (filter != null) {
-        hints = [];
-        _ref1 = ctx.hints;
-        for (_k = 0, _len1 = _ref1.length; _k < _len1; _k++) {
-          hint = _ref1[_k];
-          if ((hint !== filter && hint.indexOf(filter) === 0) || [",", "(", ")"].indexOf(hint) >= 0) {
-            hints.push(hint);
-          }
-        }
-        ctx.hints = hints;
-      }
+      ctx.filter = filter;
       return ctx;
     },
     get_hints_autocomplete: function(ctx, schema, args) {
@@ -533,7 +545,7 @@
       }
     },
     getHints: function(str, ctx, _schema) {
-      var data, hints, i, schema, _hints, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref;
+      var data, hint, hints, i, schema, _hints, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
 
       hints = [];
       _hints = ctx.hints;
@@ -566,6 +578,16 @@
           }
         }
       }
+      if (ctx.filter != null) {
+        _hints = [];
+        for (_m = 0, _len4 = hints.length; _m < _len4; _m++) {
+          hint = hints[_m];
+          if ((hint !== ctx.filter && hint.indexOf(ctx.filter) === 0) || [",", "(", ")"].indexOf(hint) >= 0) {
+            _hints.push(hint);
+          }
+        }
+        hints = _hints;
+      }
       return hints.sort();
     }
   };
@@ -573,16 +595,23 @@
   window.gen = new _Gen();
 
   CodeMirror.hqlHint = function(cm, opt) {
-    var cur, hints, options, text;
+    var cur, from, list, offset, options, text, to;
 
     cur = cm.getCursor();
     text = Service.getCodeAfterToken(cm, cur, ";");
     options = gen.parse(text);
-    hints = gen.getHints(text, options, opt.schemaInfo);
+    list = gen.getHints(text, options, opt.schemaInfo);
+    if (options.filter != null) {
+      offset = options.filter.length;
+      from = CodeMirror.Pos(cur.line, cur.ch - offset);
+    } else {
+      from = CodeMirror.Pos(cur.line, cur.ch);
+    }
+    to = CodeMirror.Pos(cur.line, cur.ch);
     return {
-      list: hints,
-      from: CodeMirror.Pos(cur.line, cur.ch),
-      to: CodeMirror.Pos(cur.line, cur.ch)
+      list: list,
+      from: from,
+      to: to
     };
   };
 

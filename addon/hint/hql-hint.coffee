@@ -347,6 +347,17 @@ _Gen::=
     filter = null
     if _str.length > 0
       lastCh = _str[_str.length-1]
+      if lastCh is ")"
+        ctx.hints = [","]
+        return ctx
+      if lastCh is "*"
+        if tokens.length >= 2
+          if tokens[tokens.length-1] is "*"
+            if tokens[tokens.length-2] is "("
+              ctx.hints = [")"]
+            else
+              ctx.hints = [","]
+            return ctx
       unless [" ",",","=",">","<",".","("].indexOf(lastCh) >= 0
         for index in [tokens.length-1..0]
           filter = tokens[index].trim()
@@ -354,20 +365,23 @@ _Gen::=
         if [].concat(@collectionAgregate, @collectionExpr).indexOf(filter) >= 0
           ctx.hints = ["("]
           return ctx
-        #else
-        #  tokens = tokens.splice(0,index)
+        if @BLOCKS.indexOf(filter) >= 0
+          ctx.hints = []
+          return ctx
+        else
+          tokens = tokens.splice(0,index)
 
     for token, i in tokens
       token = token.trim()
       continue if token is ""
       @_parseToken(token, ctx, i, tokens)
-
-    if filter?
-      hints = []
-      for hint in ctx.hints
-        if (hint != filter and hint.indexOf(filter) == 0 ) or [",","(",")"].indexOf(hint) >= 0
-          hints.push hint
-      ctx.hints = hints
+    ctx.filter = filter
+    #if filter?
+    #  hints = []
+    #  for hint in ctx.hints
+    #    if (hint != filter and hint.indexOf(filter) == 0 ) or [",","(",")"].indexOf(hint) >= 0
+    #      hints.push hint
+    #  ctx.hints = hints
 
     ctx
 
@@ -463,6 +477,12 @@ _Gen::=
       if data = @exec(_hints.call, ctx, schema, _hints.args)
         for i in data
           hints.push i
+    if ctx.filter?
+      _hints = []
+      for hint in hints
+        if (hint != ctx.filter and hint.indexOf(ctx.filter) == 0 ) or [",","(",")"].indexOf(hint) >= 0
+          _hints.push hint
+      hints = _hints
     hints.sort()
 
 window.gen = new _Gen()
@@ -473,11 +493,15 @@ CodeMirror.hqlHint = (cm, opt)->
   text = Service.getCodeAfterToken cm, cur, ";"
 
   options = gen.parse text
-  hints = gen.getHints text, options, opt.schemaInfo
+  list = gen.getHints text, options, opt.schemaInfo
+  if options.filter?
+    offset = options.filter.length
+    from = CodeMirror.Pos cur.line, cur.ch - offset
+  else
+    from = CodeMirror.Pos cur.line, cur.ch
+  to = CodeMirror.Pos cur.line, cur.ch
   {
-    list: hints
-    from: CodeMirror.Pos cur.line, cur.ch
-    to: CodeMirror.Pos cur.line, cur.ch
+    list,from, to
   }
 
 

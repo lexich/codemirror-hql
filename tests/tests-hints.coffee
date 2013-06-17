@@ -44,7 +44,7 @@ test "Check select", ->
 
   str = "select a"
   hints = _getHints str
-  deepEqual hints, [","], "HQL: `#{str}`"
+  deepEqual hints, ["avg"], "HQL: `#{str}`"
 
   str = "select a "
   hints = _getHints str
@@ -68,7 +68,7 @@ test "Check select", ->
 
   str = "select count(dog"
   hints = _getHints str
-  deepEqual hints, [")"].sort(), "HQL: `#{str}`"
+  deepEqual hints, [].sort(), "HQL: `#{str}`"
 
   str = "select avg(*)"
   hints = _getHints str
@@ -84,7 +84,7 @@ test "Check select", ->
 
   str = "select *, a"
   hints = _getHints str
-  deepEqual hints, [",","avg"].sort(), "HQL: `#{str}`"
+  deepEqual hints, ["avg"].sort(), "HQL: `#{str}`"
 
 test "Check select from", ->
   str = "select a from"
@@ -119,7 +119,7 @@ test "Check select from", ->
 
   str = "from Cat a"
   hints = _getHints str
-  deepEqual hints, [], "HQL: `#{str}`"
+  deepEqual hints, ["as"], "HQL: `#{str}`"
 
   str = "from Cat a "
   hints = _getHints str
@@ -251,7 +251,7 @@ test "Check order", ->
 
   str = "from Cat c order by c"
   hints = _getHints str
-  deepEqual hints, [","], "HQL: `#{str}`"
+  deepEqual hints, [], "HQL: `#{str}`"
 
   str = "from Cat c order by c "
   hints = _getHints str

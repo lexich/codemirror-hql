@@ -58,7 +58,7 @@
     deepEqual(hints, ["*", "avg", "count", "distinct", "max", "min", "sum"].sort(), "HQL: `" + str + "`");
     str = "select a";
     hints = _getHints(str);
-    deepEqual(hints, [","], "HQL: `" + str + "`");
+    deepEqual(hints, ["avg"], "HQL: `" + str + "`");
     str = "select a ";
     hints = _getHints(str);
     deepEqual(hints, ["from", ","].sort(), "HQL: `" + str + "`");
@@ -76,7 +76,7 @@
     deepEqual(hints, [")"].sort(), "HQL: `" + str + "`");
     str = "select count(dog";
     hints = _getHints(str);
-    deepEqual(hints, [")"].sort(), "HQL: `" + str + "`");
+    deepEqual(hints, [].sort(), "HQL: `" + str + "`");
     str = "select avg(*)";
     hints = _getHints(str);
     deepEqual(hints, [","].sort(), "HQL: `" + str + "`");
@@ -88,7 +88,7 @@
     deepEqual(hints, [","].sort(), "HQL: `" + str + "`");
     str = "select *, a";
     hints = _getHints(str);
-    return deepEqual(hints, [",", "avg"].sort(), "HQL: `" + str + "`");
+    return deepEqual(hints, ["avg"].sort(), "HQL: `" + str + "`");
   });
 
   test("Check select from", function() {
@@ -117,7 +117,7 @@
     deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "as", "group", "with"].sort(), "HQL: `" + str + "`");
     str = "from Cat a";
     hints = _getHints(str);
-    deepEqual(hints, [], "HQL: `" + str + "`");
+    deepEqual(hints, ["as"], "HQL: `" + str + "`");
     str = "from Cat a ";
     hints = _getHints(str);
     return deepEqual(hints, ["fetch", "inner", "left", "right", "join", "where", "order", "group", "with"].sort(), "HQL: `" + str + "`");
@@ -220,7 +220,7 @@
     deepEqual(hints, ["c", "d"], "HQL: `" + str + "`");
     str = "from Cat c order by c";
     hints = _getHints(str);
-    deepEqual(hints, [","], "HQL: `" + str + "`");
+    deepEqual(hints, [], "HQL: `" + str + "`");
     str = "from Cat c order by c ";
     hints = _getHints(str);
     deepEqual(hints, [","], "HQL: `" + str + "`");
