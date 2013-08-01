@@ -121,7 +121,7 @@ _Gen::=
       if block.counter is 0
         block.canAddExtract = true
         block.openBracket = false
-        @_addHints ctx, call:"get_hints_extract", add:["distinct", "*"].concat(@collectionAgregate,@collectionQualifiedPath, @collectionFunctions, @collectionType)
+        @_addHints ctx, call:"get_hints_extract", add:["distinct", "new", "*"].concat(@collectionAgregate,@collectionQualifiedPath, @collectionFunctions, @collectionType)
       else if @collectionAgregate.indexOf(token) >= 0
         @_addHints ctx, ["("]
       else if token is "("
@@ -132,7 +132,7 @@ _Gen::=
         @_addHints ctx, [",","from"]
       else if block.openBracket
         @_addHints ctx, [")"]
-      else if token is "distinct"
+      else if token in ["distinct","new"]
         @_addHints ctx, []
       else if token is ","
         block.canAddExtract = true

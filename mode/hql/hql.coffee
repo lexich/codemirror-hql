@@ -34,6 +34,7 @@ sqlKeywords = [
   "join"
   "fetch"
   "all"
+  "new"
 ].join(" ")
 
 builtinWords = [

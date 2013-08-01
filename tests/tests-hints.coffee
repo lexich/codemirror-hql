@@ -48,7 +48,7 @@ test "Check select", ->
 
   str = "select "
   hints = _getHints str
-  deepEqual hints, [ "*", "avg", "count", "distinct", "max", "min", "sum", "value","index","key","entry" ].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
+  deepEqual hints, [ "*", "new", "avg", "count", "distinct", "max", "min", "sum", "value","index","key","entry" ].concat(collectionFunctions,collectionType).sort(), "HQL: `#{str}`"
 
   str = "select a"
   hints = _getHints str
